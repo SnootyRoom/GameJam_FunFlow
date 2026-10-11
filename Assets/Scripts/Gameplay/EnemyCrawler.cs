@@ -75,7 +75,7 @@ namespace CatTanks
         {
             if (Time.time < _nextHit) return;
             var hp = c.collider.GetComponentInParent<Health>();
-            if (hp == null || !hp.isPlayer) return; // работает с любым скриптом игрока, важен только Health.isPlayer
+            if (hp == null || !hp.IsPlayer) return; // работает с любым скриптом игрока, важна только команда в Health
             hp.Damage(contactDamage);
             _nextHit = Time.time + contactCooldown;
         }

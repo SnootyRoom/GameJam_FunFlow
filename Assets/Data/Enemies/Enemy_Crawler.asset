@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7beb516551fd52641adb6b232d8f1a4e, type: 3}
+  m_Name: Enemy_Crawler
+  m_EditorClassIdentifier: 
+  type: 0
+  prefab: {fileID: 0}
+  footprint: 1
+  maxHp: 1
+  invulnerableAfterHit: 0.05
+  moveSpeed: 2.2
+  aggroRange: 9
+  hearRange: 4
+  contactDamage: 1
+  fireInterval: 2.2
+  bulletSpeed: 6
+  maxBounces: 1
+  sightRange: 14
+  color: {r: 0.85, g: 0.25, b: 0.25, a: 1}
+  size: 0.7

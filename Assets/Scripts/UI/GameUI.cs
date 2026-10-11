@@ -20,6 +20,8 @@ namespace CatTanks.UI
         [Header("Спрайты художника (пусто = примитивы)")]
         public Font font;
         public Sprite logo;                   // 1024×512
+        public Sprite menuBackground;         // фон главного меню, 1920×1080; заполняет экран, лишнее обрезается
+        public Color menuBackgroundTint = new Color(0.75f, 0.75f, 0.75f, 1f); // чуть темнее, чтобы читались кнопки
         public Sprite heartFull;              // 48×48
         public Sprite heartEmpty;
         public Sprite exitArrow;              // 48×48, смотрит вправо
@@ -40,7 +42,7 @@ namespace CatTanks.UI
         RectTransform _hearts, _arrow, _crosshair;
         Text _levelText, _enemiesText, _bannerTitle, _bannerSub, _toastText;
         readonly List<Image> _heartImages = new List<Image>();
-        float _toastUntil, _nextEnemyRefresh;
+        float _toastUntil;
 
         // ------------------------------------------------------------------ Жизненный цикл
 
@@ -68,6 +70,7 @@ namespace CatTanks.UI
             flow.OnPlayerKilled += HandlePlayerKilled;
             flow.OnPlayerHpChanged += SetHearts;
             flow.OnExitBlocked += HandleExitBlocked;
+            flow.OnEnemyCountChanged += SetEnemyCount;
         }
 
         void Start()
@@ -86,18 +89,13 @@ namespace CatTanks.UI
             flow.OnPlayerKilled -= HandlePlayerKilled;
             flow.OnPlayerHpChanged -= SetHearts;
             flow.OnExitBlocked -= HandleExitBlocked;
+            flow.OnEnemyCountChanged -= SetEnemyCount;
         }
 
         void Update()
         {
             if (flow == null) return;
             var ctx = flow.Current;
-
-            if (_hud.activeSelf && ctx != null && Time.unscaledTime >= _nextEnemyRefresh)
-            {
-                _nextEnemyRefresh = Time.unscaledTime + 0.25f;
-                _enemiesText.text = "Врагов: " + ctx.AliveEnemyCount();
-            }
 
             UpdateExitArrow(ctx);
             UpdateCrosshair();
@@ -176,6 +174,16 @@ namespace CatTanks.UI
             _menu = rt.gameObject;
             UIFactory.Image(rt, Prims.Square, new Color(0.12f, 0.13f, 0.15f, 1f), true);
 
+            if (menuBackground != null)
+            {
+                // как background-size: cover — на любом соотношении сторон без полос и растяжения
+                var bg = UIFactory.Rect(rt, "Background", new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+                UIFactory.Image(bg, menuBackground, menuBackgroundTint);
+                var fit = bg.gameObject.AddComponent<AspectRatioFitter>();
+                fit.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+                fit.aspectRatio = menuBackground.rect.width / menuBackground.rect.height;
+            }
+
             if (logo != null)
             {
                 var l = UIFactory.Rect(rt, "Logo", new Vector2(0.5f, 0.5f), new Vector2(0, 230), new Vector2(1024, 512) * 0.7f);
@@ -221,7 +229,7 @@ namespace CatTanks.UI
         void HandleLevelStarted(LevelContext ctx)
         {
             _levelText.text = "Уровень " + ctx.LevelNumber;
-            _enemiesText.text = "Врагов: " + ctx.AliveEnemyCount();
+            SetEnemyCount(ctx.AliveEnemyCount());
             if (ctx.PlayerHealth != null) SetHearts(ctx.PlayerHealth.Hp, ctx.PlayerHealth.maxHp);
         }
 
@@ -241,6 +249,11 @@ namespace CatTanks.UI
         {
             _toastText.text = "Сначала разберись со всеми телефонами!";
             _toastUntil = Time.unscaledTime + 1.5f;
+        }
+
+        void SetEnemyCount(int alive)
+        {
+            _enemiesText.text = "Врагов: " + alive;
         }
 
         void SetHearts(int hp, int max)

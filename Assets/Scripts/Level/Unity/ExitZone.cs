@@ -14,7 +14,7 @@ namespace CatTanks
         void OnTriggerEnter2D(Collider2D other)
         {
             var hp = other.GetComponentInParent<Health>();
-            if (hp == null || !hp.isPlayer) return; // игрок = объект с Health.isPlayer, какой бы скрипт им ни управлял
+            if (hp == null || !hp.IsPlayer) return; // игрок = объект с Health команды Player, какой бы скрипт им ни управлял
             PlayerEntered?.Invoke();
         }
     }

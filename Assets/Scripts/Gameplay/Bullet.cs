@@ -14,6 +14,7 @@ namespace CatTanks
         public float lifetime = 10f;
 
         public GameObject Owner { get; private set; }
+        public Team Team { get; private set; }
         public Vector2 Direction { get; private set; }
         public int Bounces { get; private set; }
 
@@ -41,6 +42,8 @@ namespace CatTanks
             var b = go.GetComponent<Bullet>();
             if (b == null) b = go.AddComponent<Bullet>();
             b.Owner = owner;
+            var ownerHp = owner != null ? owner.GetComponentInParent<Health>() : null;
+            b.Team = ownerHp != null ? ownerHp.team : Team.Enemy;
             b.speed = speed;
             b.maxBounces = maxBounces;
             b.SetDirection(direction);
@@ -76,7 +79,7 @@ namespace CatTanks
                 var hp = hit.collider.GetComponentInParent<Health>();
                 if (hp != null)
                 {
-                    hp.Damage(damage);
+                    if (Health.CanHurt(Team, hp)) hp.Damage(damage); // без friendly fire снаряд просто гаснет о своего
                     Explode(hit.centroid);
                     return;
                 }

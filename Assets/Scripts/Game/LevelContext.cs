@@ -1,4 +1,5 @@
 // Всё, что нужно объектам на уровне. Создаётся GameFlow на каждый уровень и передаётся через Init.
+using System;
 using System.Collections.Generic;
 using CatTanks.Level;
 using UnityEngine;
@@ -16,14 +17,33 @@ namespace CatTanks
         public GameObject Player;
         public Health PlayerHealth;
         public Transform Exit;
-        public readonly List<GameObject> Enemies = new List<GameObject>();
+        public readonly List<GameObject> Enemies = new List<GameObject>();   // только живые
+
+        public event Action<GameObject> EnemyKilled;      // враг умер (объект ещё существует до конца кадра)
+        public event Action<int> EnemyCountChanged;       // сколько живых — для счётчика, открытия выхода и т.п.
 
         public bool PlayerAlive => Player != null && Player.activeInHierarchy;
 
         public int AliveEnemyCount()
         {
-            Enemies.RemoveAll(e => e == null);
+            Enemies.RemoveAll(e => e == null); // на случай, если врага удалили не через Health
             return Enemies.Count;
+        }
+
+        /// <summary>Вызывает EntitySpawner. Враг уходит из списка, когда его Health сообщит о смерти.</summary>
+        public void RegisterEnemy(GameObject enemy)
+        {
+            Enemies.Add(enemy);
+            var hp = enemy.GetComponentInChildren<Health>();
+            if (hp != null) hp.OnDeath += () => HandleEnemyDeath(enemy);
+            EnemyCountChanged?.Invoke(Enemies.Count);
+        }
+
+        void HandleEnemyDeath(GameObject enemy)
+        {
+            if (!Enemies.Remove(enemy)) return;
+            EnemyKilled?.Invoke(enemy);
+            EnemyCountChanged?.Invoke(Enemies.Count);
         }
     }
 

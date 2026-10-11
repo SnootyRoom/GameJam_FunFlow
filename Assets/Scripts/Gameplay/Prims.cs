@@ -29,6 +29,7 @@ namespace CatTanks
                 filterMode = FilterMode.Bilinear,
                 wrapMode = TextureWrapMode.Clamp,
                 name = "Prim" + shape,
+                hideFlags = HideFlags.DontSave, // не попадать в сцену при предпросмотре в редакторе
             };
             var px = new Color32[n * n];
             for (int y = 0; y < n; y++)
@@ -51,7 +52,9 @@ namespace CatTanks
                 }
             tex.SetPixels32(px);
             tex.Apply();
-            return Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), n);
+            var sprite = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), n);
+            sprite.hideFlags = HideFlags.DontSave;
+            return sprite;
         }
 
         /// <summary>Создаёт объект со SpriteRenderer.</summary>

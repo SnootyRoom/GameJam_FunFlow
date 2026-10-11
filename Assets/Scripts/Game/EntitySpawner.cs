@@ -1,5 +1,5 @@
 // Создаёт игрока и врагов по данным уровня и передаёт им LevelContext через ILevelActor.Init.
-// Префабы — от разработчиков игрока и ИИ. Пустое поле = тестовый примитив.
+// Префаб и параметры каждого врага — в ассетах EnemyDefinition. Нет префаба = заглушка из Placeholders.
 using CatTanks.Level;
 using UnityEngine;
 
@@ -7,16 +7,11 @@ namespace CatTanks
 {
     public class EntitySpawner : MonoBehaviour
     {
-        [Header("Префабы (пусто = примитивы)")]
+        [Tooltip("Пусто = танк из примитивов")]
         public GameObject playerPrefab;
-        public GameObject crawlerPrefab;
-        public GameObject shooterPrefab;
-        public GameObject crabPrefab;
 
-        [Header("Цвета примитивов")]
-        public Color crawlerColor = new Color(0.85f, 0.25f, 0.25f);
-        public Color shooterColor = new Color(0.6f, 0.25f, 0.8f);
-        public Color crabColor = new Color(0.95f, 0.55f, 0.1f);
+        [Tooltip("По одному описанию на каждый EnemyType. Пустой список в редакторе заполнится всеми ассетами проекта")]
+        public EnemyDefinition[] enemies;
 
         /// <summary>Создаёт игрока в точке A и всех врагов из ctx.Data.enemies.</summary>
         public void SpawnAll(LevelContext ctx)
@@ -30,13 +25,13 @@ namespace CatTanks
             Vector2 pos = LevelGrid.CellToWorld(ctx.Data.start);
             var go = playerPrefab != null
                 ? Instantiate(playerPrefab, pos, Quaternion.identity, ctx.Root)
-                : PlayerTank.CreatePrimitive(ctx.Root, pos);
+                : Placeholders.Player(ctx.Root, pos);
             go.tag = "Player";
 
             ctx.Player = go;
             ctx.PlayerHealth = go.GetComponentInChildren<Health>();
-            if (ctx.PlayerHealth == null || !ctx.PlayerHealth.isPlayer)
-                Debug.LogError("[EntitySpawner] У игрока должен быть Health с галочкой isPlayer.", go);
+            if (ctx.PlayerHealth == null || !ctx.PlayerHealth.IsPlayer)
+                Debug.LogError("[EntitySpawner] У игрока должен быть Health с team = Player.", go);
 
             InitActors(go, ctx);
             return go;
@@ -44,31 +39,34 @@ namespace CatTanks
 
         /// <summary>
         /// Создаёт врага в клетке cell. Можно вызывать и во время игры (подкрепление, спавн из гнезда).
-        /// Краб занимает 2×2 клетки: cell — его левая нижняя клетка.
+        /// Для больших врагов (footprint > 1) cell — левая нижняя клетка площадки.
         /// </summary>
         public GameObject SpawnEnemy(LevelContext ctx, EnemyType type, GridPos cell)
         {
-            Vector2 pos = LevelGrid.CellToWorld(cell);
-            GameObject go;
-            switch (type)
+            var def = Find(type);
+            if (def == null)
             {
-                case EnemyType.Crawler:
-                    go = crawlerPrefab != null ? Instantiate(crawlerPrefab, pos, Quaternion.identity, ctx.Root)
-                                               : MakeCrawler(ctx.Root, pos, 0.7f, 1, 2.2f, crawlerColor);
-                    break;
-                case EnemyType.Shooter:
-                    go = shooterPrefab != null ? Instantiate(shooterPrefab, pos, Quaternion.identity, ctx.Root)
-                                               : MakeShooter(ctx.Root, pos);
-                    break;
-                default:
-                    pos += new Vector2(0.5f, 0.5f); // центр площадки 2×2
-                    go = crabPrefab != null ? Instantiate(crabPrefab, pos, Quaternion.identity, ctx.Root)
-                                            : MakeCrab(ctx.Root, pos);
-                    break;
+                Debug.LogError($"[EntitySpawner] Нет EnemyDefinition для {type} — добавь ассет в список enemies.", this);
+                return null;
             }
-            ctx.Enemies.Add(go);
+
+            Vector2 pos = LevelGrid.CellToWorld(cell) + def.FootprintOffset;
+            var go = def.prefab != null
+                ? Instantiate(def.prefab, pos, Quaternion.identity, ctx.Root)
+                : Placeholders.Enemy(def, ctx.Root, pos);
+            def.ApplyTo(go);
+
+            ctx.RegisterEnemy(go);
             InitActors(go, ctx);
             return go;
+        }
+
+        EnemyDefinition Find(EnemyType type)
+        {
+            if (enemies != null)
+                foreach (var d in enemies)
+                    if (d != null && d.type == type) return d;
+            return null;
         }
 
         static void InitActors(GameObject go, LevelContext ctx)
@@ -76,53 +74,17 @@ namespace CatTanks
             foreach (var actor in go.GetComponentsInChildren<ILevelActor>(true)) actor.Init(ctx);
         }
 
-        // ------------------------------------------------------------------ Примитивы-заглушки
-
-        GameObject MakeCrawler(Transform root, Vector2 pos, float size, int hp, float speed, Color color)
+#if UNITY_EDITOR
+        void OnValidate()
         {
-            var go = Prims.Create("Crawler", root, Prims.Square, color, pos, Vector2.one * size, 8);
-            Prims.Child("Screen", go.transform, Prims.Square, new Color(0.1f, 0.15f, 0.25f), Vector2.zero, new Vector2(0.6f, 0.75f), 9);
-            for (int i = -1; i <= 1; i++) // лапки
-            {
-                Prims.Child("LegL", go.transform, Prims.Square, Prims.Dark(color, 0.7f), new Vector2(i * 0.3f, 0.55f), new Vector2(0.1f, 0.3f), 7);
-                Prims.Child("LegR", go.transform, Prims.Square, Prims.Dark(color, 0.7f), new Vector2(i * 0.3f, -0.55f), new Vector2(0.1f, 0.3f), 7);
-            }
-            go.AddComponent<BoxCollider2D>().size = Vector2.one * 0.9f;
-            var h = go.AddComponent<Health>(); h.maxHp = hp; h.invulnerableAfterHit = 0.05f; h.ResetHp();
-            var c = go.AddComponent<EnemyCrawler>(); c.speed = speed;
-            return go;
+            if (enemies != null && enemies.Length > 0) return;
+            var guids = UnityEditor.AssetDatabase.FindAssets("t:" + nameof(EnemyDefinition));
+            if (guids.Length == 0) return;
+            enemies = new EnemyDefinition[guids.Length];
+            for (int i = 0; i < guids.Length; i++)
+                enemies[i] = UnityEditor.AssetDatabase.LoadAssetAtPath<EnemyDefinition>(UnityEditor.AssetDatabase.GUIDToAssetPath(guids[i]));
+            UnityEditor.EditorUtility.SetDirty(this);
         }
-
-        GameObject MakeShooter(Transform root, Vector2 pos)
-        {
-            var go = Prims.Create("Shooter", root, Prims.Square, shooterColor, pos, Vector2.one * 0.8f, 8);
-            Prims.Child("Screen", go.transform, Prims.Square, new Color(0.1f, 0.15f, 0.25f), Vector2.zero, new Vector2(0.6f, 0.75f), 9);
-            var turret = new GameObject("Turret").transform;
-            turret.SetParent(go.transform, false);
-            turret.localScale = new Vector3(1f / 0.8f, 1f / 0.8f, 1f);
-            Prims.Child("Stinger", turret, Prims.Square, Prims.Dark(shooterColor, 0.6f), new Vector2(0.4f, 0), new Vector2(0.4f, 0.14f), 10);
-            Prims.Child("Camera", turret, Prims.Circle, new Color(0.9f, 0.9f, 1f), new Vector2(0.6f, 0), Vector2.one * 0.16f, 11);
-            go.AddComponent<BoxCollider2D>().size = Vector2.one * 0.95f;
-            var h = go.AddComponent<Health>(); h.maxHp = 2; h.invulnerableAfterHit = 0.05f; h.ResetHp();
-            var s = go.AddComponent<EnemyShooter>(); s.turret = turret; s.bodyRadius = 0.45f;
-            return go;
-        }
-
-        GameObject MakeCrab(Transform root, Vector2 pos)
-        {
-            var go = MakeCrawler(root, pos, 1.7f, 5, 1.0f, crabColor);
-            go.name = "Crab";
-            var crawler = go.GetComponent<EnemyCrawler>();
-            crawler.aggroRange = 6f;   // страж: не уходит далеко от Б, пока игрок не подъедет
-            crawler.hearRange = 3f;
-            var turret = new GameObject("Turret").transform;
-            turret.SetParent(go.transform, false);
-            turret.localScale = new Vector3(1f / 1.7f, 1f / 1.7f, 1f);
-            Prims.Child("Claw", turret, Prims.Square, Prims.Dark(crabColor, 0.6f), new Vector2(1.0f, 0), new Vector2(0.5f, 0.25f), 10);
-            var s = go.AddComponent<EnemyShooter>();
-            s.turret = turret; s.bodyRadius = 0.9f; s.fireInterval = 1.6f; s.maxBounces = 2;
-            go.GetComponent<Health>().CacheRenderers(); // клешня добавлена после Health
-            return go;
-        }
+#endif
     }
 }

@@ -64,7 +64,7 @@ namespace CatTanks.Level
     [Serializable]
     public class LevelSettings
     {
-        public int seed = 0;               // 0 = случайный сид при каждой генерации
+        public int seed = 0;               // сид первого уровня для отладки; 0 = случайный (генератор сид получает параметром)
 
         // --- Арена и BSP ---
         public int width = 40;
@@ -87,9 +87,8 @@ namespace CatTanks.Level
         public int startExitClearRadius = 2;
 
         // --- Враги ---
-        public int difficulty = 1;         // 1..5, растёт с номером уровня
         public int baseEnemyCount = 4;
-        public int enemiesPerDifficulty = 2;
+        public int enemiesPerDifficulty = 2;   // + столько врагов за каждую ступень сложности выше первой
         public int minEnemyDistanceFromStart = 10; // в шагах по полу
         public int minEnemySpacing = 3;
         public bool spawnCrabGuard = true; // краб-страж у точки Б (со сложности 2)
@@ -107,7 +106,6 @@ namespace CatTanks.Level
         public List<GridRect> leaves = new List<GridRect>();
         public List<GridPos> doorCells = new List<GridPos>();
         public List<EnemySpawn> enemies = new List<EnemySpawn>();
-        public List<GridRect> wallRects = new List<GridRect>(); // стены, слитые в прямоугольники для коллайдеров
         public List<GridPos> mainPath = new List<GridPos>();     // кратчайший путь A → Б
         public int[,] distFromStart;                            // BFS-расстояние от A, -1 = недостижимо
         public int restLeafIndex = -1;

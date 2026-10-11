@@ -1,5 +1,5 @@
-// Генератор уровня: BSP-арена → проходы → A и Б → укрытия → проверка → враги → слияние стен.
-// Не зависит от UnityEngine: вход LevelSettings, выход LevelData.
+// Генератор уровня: BSP-арена → проходы → A и Б → укрытия → проверка → враги.
+// Не зависит от UnityEngine: вход LevelSettings + сид + сложность, выход LevelData.
 using System;
 using System.Collections.Generic;
 
@@ -7,13 +7,16 @@ namespace CatTanks.Level
 {
     public static class BspLevelGenerator
     {
-        /// <summary>Генерирует уровень. Если попытка не прошла проверку, пробует следующий сид.</summary>
-        public static LevelData Generate(LevelSettings s)
+        /// <summary>
+        /// Генерирует уровень. seed = 0 — случайный. difficulty 1..5 влияет на число врагов.
+        /// Если попытка не прошла проверку, пробует следующий сид.
+        /// </summary>
+        public static LevelData Generate(LevelSettings s, int seed, int difficulty)
         {
-            int baseSeed = s.seed != 0 ? s.seed : Environment.TickCount & 0x7FFFFFFF;
+            int baseSeed = seed != 0 ? seed : Environment.TickCount & 0x7FFFFFFF;
             for (int attempt = 0; attempt < Math.Max(1, s.maxAttempts); attempt++)
             {
-                var data = new Builder(s, baseSeed + attempt * 7919).TryBuild();
+                var data = new Builder(s, baseSeed + attempt * 7919, difficulty).TryBuild();
                 if (data != null) return data;
             }
             throw new InvalidOperationException(
@@ -58,11 +61,13 @@ namespace CatTanks.Level
             readonly Random rng;
             readonly LevelData d;
             readonly int W, H;
+            readonly int difficulty;
             bool[,] keepClear;
 
-            public Builder(LevelSettings settings, int seed)
+            public Builder(LevelSettings settings, int seed, int difficulty)
             {
                 s = settings;
+                this.difficulty = difficulty;
                 rng = new Random(seed);
                 W = Math.Max(settings.width, 2 * settings.minLeafSize + 3);
                 H = Math.Max(settings.height, 2 * settings.minLeafSize + 3);
@@ -121,9 +126,6 @@ namespace CatTanks.Level
 
                 // 7. Враги
                 PlaceEnemies(startLeaf, exitLeaf, exitDist);
-
-                // 8. Стены → прямоугольники для коллайдеров без швов
-                MergeWalls();
                 return d;
             }
 
@@ -310,7 +312,7 @@ namespace CatTanks.Level
             void PlaceEnemies(int startLeaf, int exitLeaf, int exitDist)
             {
                 var dist = d.distFromStart;
-                int total = s.baseEnemyCount + s.enemiesPerDifficulty * Math.Max(0, s.difficulty - 1);
+                int total = s.baseEnemyCount + s.enemiesPerDifficulty * Math.Max(0, difficulty - 1);
 
                 // зона-передышка: на маршруте, ближе всего к середине пути
                 if (s.restLeaf && d.leaves.Count >= 4)
@@ -346,7 +348,7 @@ namespace CatTanks.Level
                     }
 
                 // краб-страж рядом с Б: ему нужна площадка 2×2
-                if (s.spawnCrabGuard && s.difficulty >= 2)
+                if (s.spawnCrabGuard && difficulty >= 2)
                 {
                     var crabSpots = new List<GridPos>();
                     foreach (var p in candidates)
@@ -435,13 +437,6 @@ namespace CatTanks.Level
             }
 
             static int Cheb(GridPos a, GridPos b) => Math.Max(Math.Abs(a.x - b.x), Math.Abs(a.y - b.y));
-
-            // ---------------------------------------------------------------- Слияние стен
-
-            void MergeWalls()
-            {
-                d.wallRects = GridMerge.Merge(W, H, (x, y) => d.tiles[x, y] != Tile.Floor);
-            }
 
             // ---------------------------------------------------------------- Утилиты
 

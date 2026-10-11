@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f6d6ab3c40429c4aabdfb6ab1ff7fc4, type: 3}
+  m_Name: LevelConfig_Default
+  m_EditorClassIdentifier: 
+  generation:
+    seed: 0
+    width: 40
+    height: 28
+    minLeafSize: 8
+    maxDepth: 4
+    doorWidth: 3
+    extraLoops: 2
+    openWallChance: 0.2
+    minCoverPerLeaf: 1
+    maxCoverPerLeaf: 3
+    coverClearance: 1
+    doorKeepClear: 2
+    startExitClearRadius: 2
+    baseEnemyCount: 4
+    enemiesPerDifficulty: 2
+    minEnemyDistanceFromStart: 10
+    minEnemySpacing: 3
+    spawnCrabGuard: 1
+    restLeaf: 1
+    maxAttempts: 30
+  startDifficulty: 1
+  maxDifficulty: 5

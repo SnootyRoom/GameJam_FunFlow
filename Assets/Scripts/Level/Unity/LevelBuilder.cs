@@ -1,41 +1,45 @@
-// Строит СЦЕНУ уровня по LevelData: пол, стены, укрытия, общий коллайдер, A и Б.
-// Не знает про игрока, врагов, номер уровня и UI — этим занимаются EntitySpawner и GameFlow.
+// Строит уровень на стандартном Unity Tilemap:
+//   Grid
+//    ├─ Floor  (Tilemap)                       — пол, без физики
+//    ├─ Walls  (Tilemap + TilemapCollider2D + CompositeCollider2D) — стены
+//    └─ Cover  (Tilemap + TilemapCollider2D + CompositeCollider2D) — укрытия
+// Картинка и физика берутся из одних и тех же тайлов — источник правды один (LevelData → Tilemap).
+// Игрок, враги и снаряды сюда не входят: их создаёт EntitySpawner внутри Root.
 using System.Collections.Generic;
 using CatTanks.Level;
 using UnityEngine;
+using UnityEngine.Tilemaps;
+using CellType = CatTanks.Level.Tile;          // наш тип клетки: Floor / Wall / Cover
+using UTile = UnityEngine.Tilemaps.Tile;       // тайл Unity
 
 namespace CatTanks
 {
     public class LevelBuilder : MonoBehaviour
     {
-        /// <summary>
-        /// Внешний вид одной поверхности (пол, стены или укрытия). Используется первое заданное:
-        /// префаб → спрайт → материал → просто цвет.
-        /// </summary>
+        /// <summary>Чем рисовать один слой. Используется первое заданное: tile → sprite → color.</summary>
         [System.Serializable]
-        public class SurfaceLook
+        public class TileLayer
         {
-            [Tooltip("Префаб на каждую клетку. Только картинка, без коллайдера")]
-            public GameObject prefab;
-            [Tooltip("Спрайт, который повторяется плиткой — одна картинка на клетку. Импорт: Mesh Type = Full Rect, Wrap Mode = Repeat")]
+            [Tooltip("Готовый тайл-ассет: Tile, Rule Tile, Animated Tile. Для стен поставь у ассета Collider Type = Grid")]
+            public TileBase tile;
+            [Tooltip("Или просто спрайт — тайл создастся автоматически и подгонится под клетку")]
             public Sprite sprite;
-            [Tooltip("Материал (.mat). Его текстура повторяется по 1 разу на клетку (см. tilesPerCell). Wrap Mode текстуры = Repeat")]
-            public Material material;
-            [Tooltip("Сколько повторов текстуры (спрайта или материала) на одну клетку")]
-            public float tilesPerCell = 1f;
-            [Tooltip("Оттенок спрайта или префаба. Белый = оригинальные цвета художника")]
-            public Color tint = Color.white;
-            [Tooltip("Цвет заглушки, когда ни префаб, ни спрайт, ни материал не заданы")]
+            [Tooltip("Оттенок спрайта (белый = оригинал) или цвет заглушки, если нет ни тайла, ни спрайта")]
             public Color color = Color.white;
+            [Tooltip("Необязательно: материал для TilemapRenderer (например, Sprite-Lit для 2D-света)")]
+            public Material material;
         }
 
-        [Tooltip("Подгонять спрайты и префабы ровно под клетку 1×1, даже если у картинки другой Pixels Per Unit")]
-        public bool fitToCell = true;
+        [Header("Тайлы")]
+        public TileLayer floor = new TileLayer { color = new Color(0.86f, 0.84f, 0.79f) };
+        public TileLayer walls = new TileLayer { color = new Color(0.27f, 0.28f, 0.31f) };
+        public TileLayer cover = new TileLayer { color = new Color(0.55f, 0.40f, 0.24f) };
 
-        [Header("Внешний вид")]
-        public SurfaceLook floor = new SurfaceLook { color = new Color(0.86f, 0.84f, 0.79f) };
-        public SurfaceLook walls = new SurfaceLook { color = new Color(0.27f, 0.28f, 0.31f) };
-        public SurfaceLook cover = new SurfaceLook { color = new Color(0.55f, 0.40f, 0.24f) };
+        [Header("Tilemap в сцене (пусто = создадутся сами при запуске)")]
+        [Tooltip("Создать их в сцене можно через меню компонента: ⋮ → «Создать Grid и Tilemap в сцене»")]
+        public Tilemap floorMap;
+        public Tilemap wallMap;
+        public Tilemap coverMap;
 
         [Header("Точки A и Б (пусто = примитивы)")]
         public GameObject startPrefab;
@@ -46,35 +50,29 @@ namespace CatTanks
         [Header("Отладка")]
         public bool drawGizmos = true;
 
+        /// <summary>Контейнер объектов уровня (A, Б, игрок, враги, снаряды). Пересоздаётся на каждый уровень.</summary>
         public Transform Root { get; private set; }
         public ExitZone Exit { get; private set; }
         public LevelData Data { get; private set; }
 
-        readonly List<Mesh> _meshes = new List<Mesh>();
+        readonly List<UTile> _runtimeTiles = new List<UTile>();
+        bool _warnedPpu;
+
+        const int FloorOrder = -10, WallOrder = 0, CoverOrder = 1;
 
         // ------------------------------------------------------------------ API
 
-        /// <summary>Строит уровень и возвращает его корневой объект. Предыдущий уровень удаляется.</summary>
+        /// <summary>Заполняет Tilemap по данным уровня и создаёт точки A и Б. Возвращает Root для объектов уровня.</summary>
         public Transform Build(LevelData d)
         {
             Clear();
             Data = d;
-            // Корень уровня — отдельный объект строго в (0,0,0), без родителя.
-            // Раньше он был ребёнком объекта Game: если Game стоял не в нуле (или был повёрнут/отмасштабирован),
-            // коллайдеры стен (заданы смещениями внутри Root) уезжали от картинок (заданы мировыми координатами),
-            // и танк упирался в невидимые стены или проезжал сквозь видимые.
-            Root = new GameObject("Level").transform;
-            Root.position = Vector3.zero;
-            Root.rotation = Quaternion.identity;
-            Root.localScale = Vector3.one;
+            EnsureTilemaps();
+            FillTiles(d);
 
-            BuildSurface("Floor", floor, -10, new List<GridRect> { new GridRect(0, 0, d.width, d.height) },
-                         (x, y) => d.tiles[x, y] == Tile.Floor);
-            BuildSurface("Walls", walls, 0, GridMerge.Merge(d.width, d.height, (x, y) => d.tiles[x, y] == Tile.Wall),
-                         (x, y) => d.tiles[x, y] == Tile.Wall);
-            BuildSurface("Cover", cover, 1, GridMerge.Merge(d.width, d.height, (x, y) => d.tiles[x, y] == Tile.Cover),
-                         (x, y) => d.tiles[x, y] == Tile.Cover);
-            BuildWallColliders(d);
+            // Root — строго в (0,0,0) и без родителя, чтобы координаты объектов совпадали с сеткой
+            Root = new GameObject("LevelObjects").transform;
+            Root.position = Vector3.zero;
 
             Marker(startPrefab, "Start", LevelGrid.CellToWorld(d.start), startColor);
             var exit = Marker(exitPrefab, "Exit", LevelGrid.CellToWorld(d.exit), exitColor);
@@ -88,152 +86,147 @@ namespace CatTanks
 
         public void Clear()
         {
-            if (Root != null) Destroy(Root.gameObject);
-            foreach (var m in _meshes) if (m != null) Destroy(m);
-            _meshes.Clear();
+            if (Root != null) DestroySafe(Root.gameObject);
             Root = null;
             Exit = null;
             Data = null;
+            if (floorMap != null) floorMap.ClearAllTiles();
+            if (wallMap != null) wallMap.ClearAllTiles();
+            if (coverMap != null) coverMap.ClearAllTiles();
+            foreach (var t in _runtimeTiles) if (t != null) DestroySafe(t);
+            _runtimeTiles.Clear();
         }
 
-        // ------------------------------------------------------------------ Поверхности
+        // ------------------------------------------------------------------ Tilemap
 
-        /// <summary>
-        /// Префаб — по объекту на клетку (cellFilter). Спрайт, материал и цвет — один объект на прямоугольник,
-        /// текстура в нём повторяется плиткой. Так объектов в десятки раз меньше.
-        /// </summary>
-        void BuildSurface(string name, SurfaceLook look, int order, List<GridRect> rects, System.Func<int, int, bool> cellFilter)
+        void FillTiles(LevelData d)
         {
-            var parent = new GameObject(name).transform;
-            parent.SetParent(Root, false);
+            var floorTile = ResolveTile(floor, UTile.ColliderType.None);
+            var wallTile = ResolveTile(walls, UTile.ColliderType.Grid);
+            var coverTile = ResolveTile(cover, UTile.ColliderType.Grid);
 
-            if (look.prefab != null)
+            var floorPos = new List<Vector3Int>();
+            var wallPos = new List<Vector3Int>();
+            var coverPos = new List<Vector3Int>();
+            for (int x = 0; x < d.width; x++)
+                for (int y = 0; y < d.height; y++)
+                {
+                    var p = new Vector3Int(x, y, 0);
+                    floorPos.Add(p); // пол под всем, чтобы под стенами не было дыр
+                    if (d.tiles[x, y] == CellType.Wall) wallPos.Add(p);
+                    else if (d.tiles[x, y] == CellType.Cover) coverPos.Add(p);
+                }
+
+            SetAll(floorMap, floorPos, floorTile);
+            SetAll(wallMap, wallPos, wallTile);
+            SetAll(coverMap, coverPos, coverTile);
+        }
+
+        static void SetAll(Tilemap map, List<Vector3Int> positions, TileBase tile)
+        {
+            var tiles = new TileBase[positions.Count];
+            for (int i = 0; i < tiles.Length; i++) tiles[i] = tile;
+            map.SetTiles(positions.ToArray(), tiles); // одним вызовом — быстро и коллайдер пересобирается один раз
+        }
+
+        /// <summary>Тайл-ассет как есть; спрайт или цвет — превращаем в тайл на лету.</summary>
+        TileBase ResolveTile(TileLayer layer, UTile.ColliderType collider)
+        {
+            if (layer.tile != null)
             {
-                foreach (var r in rects)
-                    for (int x = r.x; x < r.xMax; x++)
-                        for (int y = r.y; y < r.yMax; y++)
-                        {
-                            if (!cellFilter(x, y)) continue;
-                            var go = Instantiate(look.prefab, LevelGrid.CellToWorld(new GridPos(x, y)), Quaternion.identity, parent);
-                            // физика стен — только в общем коллайдере, иначе вернутся швы и кривые отскоки
-                            foreach (var col in go.GetComponentsInChildren<Collider2D>()) Destroy(col);
-                            PreparePrefabInstance(go, look, order);
-                        }
+                WarnIfWrongSize(layer.tile);
+                return layer.tile;
+            }
+
+            var t = ScriptableObject.CreateInstance<UTile>();
+            t.name = "RuntimeTile";
+            t.hideFlags = HideFlags.DontSave;
+            t.sprite = layer.sprite != null ? layer.sprite : Prims.Square;
+            t.color = layer.color;
+            t.colliderType = collider;     // Grid = коллайдер ровно на всю клетку, отскоки точные
+            t.flags = TileFlags.LockAll;
+
+            // Спрайт 64 px при PPU 100 занимает 0.64 клетки — масштабируем тайл ровно до 1×1
+            Vector2 size = t.sprite.bounds.size;
+            if (size.x > 0.001f && size.y > 0.001f)
+                t.transform = Matrix4x4.Scale(new Vector3(1f / size.x, 1f / size.y, 1f));
+
+            _runtimeTiles.Add(t);
+            return t;
+        }
+
+        void WarnIfWrongSize(TileBase tb)
+        {
+            var t = tb as UTile;
+            if (_warnedPpu || t == null || t.sprite == null) return;
+            Vector2 s = t.sprite.bounds.size;
+            if (Mathf.Abs(s.x - 1f) > 0.01f || Mathf.Abs(s.y - 1f) > 0.01f)
+            {
+                _warnedPpu = true;
+                Debug.LogWarning($"[LevelBuilder] Спрайт тайла «{t.name}» занимает {s.x:0.##}×{s.y:0.##} клетки вместо 1×1. " +
+                                 $"Поставь у картинки Pixels Per Unit = ширине картинки в пикселях (для 64×64 — 64).", t);
+            }
+        }
+
+        /// <summary>Если Tilemap не назначены — создаём Grid и три слоя сами.</summary>
+        void EnsureTilemaps()
+        {
+            if (floorMap != null && wallMap != null && coverMap != null)
+            {
+                SetupLayer(floorMap, floor, FloorOrder, false);
+                SetupLayer(wallMap, walls, WallOrder, true);
+                SetupLayer(coverMap, cover, CoverOrder, true);
                 return;
             }
-
-            foreach (var r in rects)
-            {
-                Vector3 center = new Vector3(r.x + r.w / 2f, r.y + r.h / 2f, 0f);
-                if (look.sprite != null)
-                {
-                    var go = new GameObject(name + "Tile");
-                    go.transform.SetParent(parent, false);
-                    go.transform.position = center;
-                    var sr = go.AddComponent<SpriteRenderer>();
-                    sr.sprite = look.sprite;
-                    sr.drawMode = SpriteDrawMode.Tiled;
-                    sr.tileMode = SpriteTileMode.Continuous;
-                    // Плитка в режиме Tiled равна размеру спрайта в юнитах (64 px при PPU 100 = 0.64).
-                    // Масштабируем объект так, чтобы одна плитка = 1 / tilesPerCell клетки при любом PPU.
-                    Vector2 tile = look.sprite.bounds.size;
-                    Vector2 scale = fitToCell && tile.x > 0f && tile.y > 0f
-                        ? new Vector2(1f / (tile.x * look.tilesPerCell), 1f / (tile.y * look.tilesPerCell))
-                        : Vector2.one;
-                    go.transform.localScale = new Vector3(scale.x, scale.y, 1f);
-                    sr.size = new Vector2(r.w / scale.x, r.h / scale.y);
-                    sr.color = look.tint;
-                    sr.sortingOrder = order;
-                    if (look.material != null) sr.sharedMaterial = look.material; // например, материал Sprite-Lit для 2D-света
-                }
-                else if (look.material != null)
-                {
-                    var go = new GameObject(name + "Quad");
-                    go.transform.SetParent(parent, false);
-                    go.transform.position = center;
-                    go.AddComponent<MeshFilter>().sharedMesh = MakeQuad(r.w, r.h, look.tilesPerCell);
-                    var mr = go.AddComponent<MeshRenderer>();
-                    mr.sharedMaterial = look.material;
-                    mr.sortingOrder = order;
-                    mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                    mr.receiveShadows = false;
-                }
-                else
-                {
-                    Prims.Create(name + "Rect", parent, Prims.Square, look.color, center, new Vector2(r.w, r.h), order);
-                }
-            }
+            CreateGrid();
         }
 
-        /// <summary>
-        /// Подгоняет префаб клетки: размер ровно 1×1 (если fitToCell), порядок отрисовки слоя, оттенок.
-        /// Без этого спрайт 64 px при стандартном PPU 100 выходит 0.64 клетки и между плитками видны щели.
-        /// </summary>
-        void PreparePrefabInstance(GameObject go, SurfaceLook look, int order)
+        void CreateGrid()
         {
-            var renderers = go.GetComponentsInChildren<SpriteRenderer>();
-            if (renderers.Length == 0) return;
-
-            if (fitToCell)
-            {
-                Bounds b = renderers[0].bounds;
-                for (int i = 1; i < renderers.Length; i++) b.Encapsulate(renderers[i].bounds);
-                if (b.size.x > 0.001f && b.size.y > 0.001f)
-                {
-                    Vector3 s = go.transform.localScale;
-                    go.transform.localScale = new Vector3(s.x / b.size.x, s.y / b.size.y, s.z);
-                }
-            }
-
-            foreach (var sr in renderers)
-            {
-                sr.sortingOrder += order; // пол всегда под стенами, укрытия над стенами
-                if (look.tint != Color.white) sr.color *= look.tint;
-            }
+            var grid = new GameObject("LevelGrid", typeof(Grid));
+            grid.transform.position = Vector3.zero;
+            grid.GetComponent<Grid>().cellSize = Vector3.one;
+            floorMap = CreateLayer(grid.transform, "Floor", floor, FloorOrder, false);
+            wallMap = CreateLayer(grid.transform, "Walls", walls, WallOrder, true);
+            coverMap = CreateLayer(grid.transform, "Cover", cover, CoverOrder, true);
         }
 
-        /// <summary>Квад w×h юнитов, UV растянуты так, что текстура повторяется tilesPerCell раз на клетку.</summary>
-        Mesh MakeQuad(int w, int h, float tilesPerCell)
+        Tilemap CreateLayer(Transform grid, string name, TileLayer layer, int order, bool solid)
         {
-            float hw = w / 2f, hh = h / 2f, u = w * tilesPerCell, v = h * tilesPerCell;
-            var m = new Mesh { name = "LevelQuad" };
-            m.vertices = new[] { new Vector3(-hw, -hh), new Vector3(-hw, hh), new Vector3(hw, hh), new Vector3(hw, -hh) };
-            m.uv = new[] { new Vector2(0, 0), new Vector2(0, v), new Vector2(u, v), new Vector2(u, 0) };
-            m.triangles = new[] { 0, 1, 2, 0, 2, 3 };
-            m.RecalculateNormals();
-            m.RecalculateBounds();
-            _meshes.Add(m);
-            return m;
+            var go = new GameObject(name, typeof(Tilemap), typeof(TilemapRenderer));
+            go.transform.SetParent(grid, false);
+            var map = go.GetComponent<Tilemap>();
+            SetupLayer(map, layer, order, solid);
+            return map;
         }
 
-        // ------------------------------------------------------------------ Коллайдеры
-
-        /// <summary>
-        /// Стены уже слиты генератором в прямоугольники. CompositeCollider2D объединяет их в цельный контур
-        /// без внутренних швов, поэтому снаряд не «ловит» стык двух коллайдеров и отскакивает правильно.
-        /// </summary>
-        void BuildWallColliders(LevelData d)
+        /// <summary>Порядок отрисовки, материал и физика слоя. Недостающие компоненты добавляются.</summary>
+        static void SetupLayer(Tilemap map, TileLayer layer, int order, bool solid)
         {
-            var go = new GameObject("WallColliders");
-            go.transform.SetParent(Root, false);
-            var rb = go.AddComponent<Rigidbody2D>();
+            map.transform.localPosition = Vector3.zero;
+            var r = map.GetComponent<TilemapRenderer>();
+            if (r == null) r = map.gameObject.AddComponent<TilemapRenderer>();
+            r.sortingOrder = order;
+            if (layer.material != null) r.sharedMaterial = layer.material;
+            if (!solid) return;
+
+            // Стандартная связка Unity: TilemapCollider2D собирает коллайдер из тайлов,
+            // CompositeCollider2D сливает его в цельный контур без швов — снаряды отскакивают ровно.
+            var rb = map.GetComponent<Rigidbody2D>();
+            if (rb == null) rb = map.gameObject.AddComponent<Rigidbody2D>();
             rb.bodyType = RigidbodyType2D.Static;
-            var composite = go.AddComponent<CompositeCollider2D>();
-            composite.geometryType = CompositeCollider2D.GeometryType.Polygons;
-            composite.generationType = CompositeCollider2D.GenerationType.Manual;
 
-            foreach (var r in d.wallRects)
-            {
-                var box = go.AddComponent<BoxCollider2D>();
-                box.offset = new Vector2(r.x + r.w / 2f, r.y + r.h / 2f);
-                box.size = new Vector2(r.w, r.h);
+            var composite = map.GetComponent<CompositeCollider2D>();
+            if (composite == null) composite = map.gameObject.AddComponent<CompositeCollider2D>();
+            composite.geometryType = CompositeCollider2D.GeometryType.Polygons;
+
+            var tc = map.GetComponent<TilemapCollider2D>();
+            if (tc == null) tc = map.gameObject.AddComponent<TilemapCollider2D>();
 #if UNITY_2023_1_OR_NEWER
-                box.compositeOperation = Collider2D.CompositeOperation.Merge;
+            tc.compositeOperation = Collider2D.CompositeOperation.Merge;
 #else
-                box.usedByComposite = true;
+            tc.usedByComposite = true;
 #endif
-            }
-            composite.GenerateGeometry();
         }
 
         GameObject Marker(GameObject prefab, string name, Vector2 pos, Color color)
@@ -242,7 +235,47 @@ namespace CatTanks
             return Prims.Create(name, Root, Prims.Square, color, pos, Vector2.one * 1.6f, -5);
         }
 
-        // ------------------------------------------------------------------ Гизмо
+        static void DestroySafe(Object o)
+        {
+            if (Application.isPlaying) Destroy(o);
+            else DestroyImmediate(o);
+        }
+
+        // ------------------------------------------------------------------ Редактор
+
+        /// <summary>Создаёт Grid с тремя Tilemap в сцене и привязывает их к этому компоненту.</summary>
+        [ContextMenu("Создать Grid и Tilemap в сцене")]
+        void CreateGridInScene()
+        {
+            if (floorMap != null && wallMap != null && coverMap != null)
+            {
+                Debug.Log("[LevelBuilder] Tilemap уже назначены.");
+                return;
+            }
+            CreateGrid();
+#if UNITY_EDITOR
+            UnityEditor.Undo.RegisterCreatedObjectUndo(floorMap.transform.parent.gameObject, "Create Level Grid");
+            UnityEditor.EditorUtility.SetDirty(this);
+#endif
+        }
+
+        /// <summary>Генерирует уровень прямо в редакторе, без запуска игры — посмотреть, как лягут тайлы.</summary>
+        [ContextMenu("Предпросмотр уровня в редакторе")]
+        void PreviewInEditor()
+        {
+            var flow = GetComponent<GameFlow>();
+            var config = flow != null ? flow.config : null;
+            var settings = config != null ? config.generation : new LevelSettings();
+            int difficulty = config != null ? config.startDifficulty : 1;
+            Clear();
+            Data = BspLevelGenerator.Generate(settings, settings.seed, difficulty);
+            EnsureTilemaps();
+            FillTiles(Data);
+            Debug.Log($"[LevelBuilder] Предпросмотр: сид {Data.seed}. Перед запуском можно не очищать — уровень пересоберётся.");
+        }
+
+        [ContextMenu("Очистить предпросмотр")]
+        void ClearPreview() { Clear(); }
 
         void OnDrawGizmos()
         {

@@ -4,16 +4,22 @@ using UnityEngine;
 
 namespace CatTanks
 {
+    public enum Team { Player, Enemy }
+
     public class Health : MonoBehaviour
     {
         public int maxHp = 1;
-        public bool isPlayer;
+        public Team team = Team.Enemy;
         public float invulnerableAfterHit = 0.5f;
+
+        /// <summary>Ранят ли снаряды своих. Задаётся в GameFlow (галочка friendlyFire).</summary>
+        public static bool FriendlyFire = true;
 
         public int Hp { get; private set; }
         public bool IsDead => Hp <= 0;
+        public bool IsPlayer => team == Team.Player;
 
-        public event Action<int> OnDamaged;  // сколько осталось
+        public event Action<int, int> OnHpChanged;  // (сейчас, максимум) — и урон, и лечение
         public event Action OnDeath;
 
         SpriteRenderer[] _renderers;
@@ -25,6 +31,9 @@ namespace CatTanks
             Hp = maxHp;
             CacheRenderers();
         }
+
+        /// <summary>Может ли снаряд команды attacker ранить target.</summary>
+        public static bool CanHurt(Team attacker, Health target) => FriendlyFire || attacker != target.team;
 
         /// <summary>Вызови, если поменял maxHp после создания объекта.</summary>
         public void ResetHp() { Hp = maxHp; }
@@ -44,8 +53,15 @@ namespace CatTanks
             _invulUntil = Time.time + invulnerableAfterHit;
             _flashUntil = Time.time + 0.08f;
             SetFlash(true);
-            OnDamaged?.Invoke(Hp);
+            OnHpChanged?.Invoke(Hp, maxHp);
             if (Hp <= 0) Die();
+        }
+
+        public void Heal(int amount)
+        {
+            if (IsDead || Hp >= maxHp) return;
+            Hp = Mathf.Min(maxHp, Hp + amount);
+            OnHpChanged?.Invoke(Hp, maxHp);
         }
 
         void Update()
@@ -66,8 +82,8 @@ namespace CatTanks
 
         void Die()
         {
-            OnDeath?.Invoke(); // GameFlow слушает это событие у игрока и перезапускает уровень
-            if (isPlayer) gameObject.SetActive(false);
+            OnDeath?.Invoke(); // GameFlow слушает игрока, LevelContext — врагов
+            if (IsPlayer) gameObject.SetActive(false);
             else Destroy(gameObject);
         }
     }

@@ -1,5 +1,5 @@
 // Ход игры: меню → уровень → победа/смерть → следующий уровень. Пауза, сложность, события для UI.
-// Единственный «глобальный» объект. Игроку и врагам он не нужен — они получают LevelContext через Init.
+// Синглтона нет: UI получает ссылку через инспектор, игрок и враги — LevelContext через Init.
 using System;
 using System.Collections;
 using CatTanks.Level;
@@ -12,16 +12,16 @@ namespace CatTanks
     [RequireComponent(typeof(LevelBuilder), typeof(EntitySpawner))]
     public class GameFlow : MonoBehaviour
     {
-        public static GameFlow Instance { get; private set; }
-
         [Header("Генерация")]
-        public LevelSettings settings = new LevelSettings();
-        [Range(1, 5)] public int startDifficulty = 1;
+        [Tooltip("Пресет генерации. Пусто в редакторе = подставится первый LevelConfig из проекта")]
+        public LevelConfig config;
 
         [Header("Правила")]
         [Tooltip("Если в сцене нет UI с меню, игра начнётся сразу")]
         public bool autoStart = true;
         public bool requireAllEnemiesDead = false;   // выход открывается только после зачистки
+        [Tooltip("Снаряды ранят своих (враги — врагов, игрок — себя после рикошета)")]
+        public bool friendlyFire = true;
         public float levelCompleteDelay = 1.5f;      // сколько показывать «Уровень пройден»
         public float restartDelay = 1.5f;            // через сколько перезапуск после смерти
         public bool debugKeys = true;                // R — новый уровень, N — пропустить
@@ -29,6 +29,7 @@ namespace CatTanks
         public GameState State { get; private set; } = GameState.Menu;
         public LevelContext Current { get; private set; }
         public int LevelNumber { get; private set; }
+        public int Difficulty { get; private set; }
 
         // ----- события (подписывается UI, звук, эффекты) -----
         public event Action<GameState> OnStateChanged;
@@ -36,23 +37,28 @@ namespace CatTanks
         public event Action<LevelContext> OnLevelCompleted;   // игрок доехал до Б
         public event Action<LevelContext> OnPlayerKilled;
         public event Action<int, int> OnPlayerHpChanged;      // (сейчас, максимум)
+        public event Action<GameObject> OnEnemyKilled;
+        public event Action<int> OnEnemyCountChanged;         // сколько врагов живо
         public event Action OnExitBlocked;                    // въехал в Б, но враги ещё живы
 
         LevelBuilder _builder;
         EntitySpawner _spawner;
-        int _fixedSeed;
+
+        LevelSettings Settings => config.generation;
 
         void Awake()
         {
-            Instance = this;
             _builder = GetComponent<LevelBuilder>();
             _spawner = GetComponent<EntitySpawner>();
-            _fixedSeed = settings.seed;
+            if (config == null)
+            {
+                Debug.LogWarning("[GameFlow] Не назначен LevelConfig — беру настройки по умолчанию.", this);
+                config = ScriptableObject.CreateInstance<LevelConfig>();
+            }
         }
 
         void OnDestroy()
         {
-            if (Instance == this) Instance = null;
             Time.timeScale = 1f;
         }
 
@@ -82,14 +88,14 @@ namespace CatTanks
         public void StartNewGame()
         {
             LevelNumber = 1;
-            settings.difficulty = startDifficulty;
-            LoadLevel(_fixedSeed);
+            Difficulty = config.startDifficulty;
+            LoadLevel(Settings.seed); // фиксированный сид из конфига (0 = случайный)
         }
 
         public void NextLevel()
         {
             LevelNumber++;
-            settings.difficulty = Mathf.Min(settings.difficulty + 1, 5);
+            Difficulty = Mathf.Min(Difficulty + 1, config.maxDifficulty);
             LoadLevel(0);
         }
 
@@ -145,11 +151,9 @@ namespace CatTanks
         {
             Teardown();
             Time.timeScale = 1f;
+            Health.FriendlyFire = friendlyFire;
 
-            settings.seed = seed;
-            var data = BspLevelGenerator.Generate(settings);
-            settings.seed = _fixedSeed;
-
+            var data = BspLevelGenerator.Generate(Settings, seed, Difficulty);
             var root = _builder.Build(data);
             var ctx = new LevelContext
             {
@@ -157,26 +161,31 @@ namespace CatTanks
                 Pathfinder = new GridPathfinder(data),
                 Root = root,
                 LevelNumber = LevelNumber,
-                Difficulty = settings.difficulty,
+                Difficulty = Difficulty,
                 Exit = _builder.Exit.transform,
             };
             Current = ctx;
             _spawner.SpawnAll(ctx);
 
+            // ctx живёт ровно один уровень, поэтому от его событий отписываться не нужно
+            ctx.EnemyKilled += e => OnEnemyKilled?.Invoke(e);
+            ctx.EnemyCountChanged += n => OnEnemyCountChanged?.Invoke(n);
+
             _builder.Exit.PlayerEntered += CompleteLevel;
             if (ctx.PlayerHealth != null)
             {
-                ctx.PlayerHealth.OnDamaged += HandlePlayerDamaged;
+                ctx.PlayerHealth.OnHpChanged += HandlePlayerHpChanged;
                 ctx.PlayerHealth.OnDeath += HandlePlayerDeath;
             }
 
             SetupCamera(ctx);
-            Debug.Log($"[GameFlow] Уровень {LevelNumber}: сид {data.seed}, сложность {settings.difficulty}, " +
+            Debug.Log($"[GameFlow] Уровень {LevelNumber}: сид {data.seed}, сложность {Difficulty}, " +
                       $"врагов {data.enemies.Count}");
 
             SetState(GameState.Playing);
             OnLevelStarted?.Invoke(ctx);
             if (ctx.PlayerHealth != null) OnPlayerHpChanged?.Invoke(ctx.PlayerHealth.Hp, ctx.PlayerHealth.maxHp);
+            OnEnemyCountChanged?.Invoke(ctx.AliveEnemyCount());
         }
 
         void Teardown()
@@ -187,7 +196,7 @@ namespace CatTanks
                 if (_builder.Exit != null) _builder.Exit.PlayerEntered -= CompleteLevel;
                 if (Current.PlayerHealth != null)
                 {
-                    Current.PlayerHealth.OnDamaged -= HandlePlayerDamaged;
+                    Current.PlayerHealth.OnHpChanged -= HandlePlayerHpChanged;
                     Current.PlayerHealth.OnDeath -= HandlePlayerDeath;
                 }
             }
@@ -195,10 +204,7 @@ namespace CatTanks
             Current = null;
         }
 
-        void HandlePlayerDamaged(int hp)
-        {
-            if (Current != null && Current.PlayerHealth != null) OnPlayerHpChanged?.Invoke(hp, Current.PlayerHealth.maxHp);
-        }
+        void HandlePlayerHpChanged(int hp, int max) => OnPlayerHpChanged?.Invoke(hp, max);
 
         void HandlePlayerDeath()
         {
@@ -228,5 +234,16 @@ namespace CatTanks
             yield return new WaitForSecondsRealtime(seconds);
             action();
         }
+
+#if UNITY_EDITOR
+        void OnValidate()
+        {
+            if (config != null) return;
+            var guids = UnityEditor.AssetDatabase.FindAssets("t:" + nameof(LevelConfig));
+            if (guids.Length == 0) return;
+            config = UnityEditor.AssetDatabase.LoadAssetAtPath<LevelConfig>(UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]));
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+#endif
     }
 }

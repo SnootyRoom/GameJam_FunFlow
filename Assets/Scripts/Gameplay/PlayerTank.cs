@@ -1,6 +1,7 @@
 // Тестовый танк игрока: корпус ездит, башня смотрит на курсор, ЛКМ — выстрел.
 // Заготовка для разработчика игрока: можно переписать целиком. Важно только, чтобы на объекте
-// был Health с isPlayer, Collider2D и Rigidbody2D (см. README). ILevelActor — по желанию.
+// был Health с team = Player, Collider2D и Rigidbody2D (см. README). ILevelActor — по желанию.
+// Заглушка из примитивов — Placeholders.Player.
 using UnityEngine;
 
 namespace CatTanks
@@ -31,34 +32,6 @@ namespace CatTanks
         {
             _rb = Prims.AddTopDownBody(gameObject);
             _rb.freezeRotation = true; // столкновения не крутят танк, поворачиваем сами
-        }
-
-        /// <summary>Танк из примитивов: корпус, гусеницы, башня с «котом».</summary>
-        public static GameObject CreatePrimitive(Transform parent, Vector3 pos)
-        {
-            var go = Prims.Create("PlayerTank", parent, Prims.Square, new Color(0.30f, 0.55f, 0.30f), pos, Vector2.one * 0.8f, 10);
-            go.tag = "Player";
-            Prims.Child("TrackL", go.transform, Prims.Square, new Color(0.15f, 0.2f, 0.15f), new Vector2(0, 0.45f), new Vector2(1.05f, 0.18f), 11);
-            Prims.Child("TrackR", go.transform, Prims.Square, new Color(0.15f, 0.2f, 0.15f), new Vector2(0, -0.45f), new Vector2(1.05f, 0.18f), 11);
-
-            // башня — отдельный объект без масштаба корпуса, чтобы вращалась независимо
-            var turret = new GameObject("Turret").transform;
-            turret.SetParent(go.transform, false);
-            turret.localScale = new Vector3(1f / 0.8f, 1f / 0.8f, 1f);
-            Prims.Child("Barrel", turret, Prims.Square, new Color(0.2f, 0.35f, 0.2f), new Vector2(0.35f, 0), new Vector2(0.5f, 0.14f), 12);
-            Prims.Child("Cat", turret, Prims.Circle, new Color(1f, 0.65f, 0.25f), Vector2.zero, Vector2.one * 0.42f, 13);
-            Prims.Child("EarL", turret, Prims.Circle, new Color(1f, 0.65f, 0.25f), new Vector2(-0.12f, 0.17f), Vector2.one * 0.14f, 13);
-            Prims.Child("EarR", turret, Prims.Circle, new Color(1f, 0.65f, 0.25f), new Vector2(-0.12f, -0.17f), Vector2.one * 0.14f, 13);
-
-            var col = go.AddComponent<CircleCollider2D>();
-            col.radius = 0.5f; // ×0.8 масштаба = 0.4 юнита, танк пролезает в проход шириной 1 клетка
-            var hp = go.AddComponent<Health>();
-            hp.maxHp = 3;
-            hp.isPlayer = true;
-            hp.ResetHp();
-            var tank = go.AddComponent<PlayerTank>();
-            tank.turret = turret;
-            return go;
         }
 
         void Update()
