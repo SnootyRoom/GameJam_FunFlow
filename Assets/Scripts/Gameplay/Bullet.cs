@@ -32,7 +32,8 @@ namespace CatTanks
         public static Bullet Spawn(Vector2 position, Vector2 direction, GameObject owner, Color color,
                                    float speed, int maxBounces, GameObject prefab = null)
         {
-            Transform parent = LevelBuilder.Instance != null ? LevelBuilder.Instance.Root : null;
+            // снаряд живёт там же, где стрелок (в корне уровня) — и удаляется вместе с уровнем
+            Transform parent = owner != null ? owner.transform.parent : null;
             GameObject go;
             if (prefab != null) go = Instantiate(prefab, position, Quaternion.identity, parent);
             else go = Prims.Create("Bullet", parent, Prims.Circle, color, position, Vector2.one * 0.24f, 20);
@@ -103,8 +104,7 @@ namespace CatTanks
         // Заглушка эффекта: короткая вспышка. Потом замени на спрайт искр от художника.
         void SpawnSpark(Vector2 at)
         {
-            var parent = LevelBuilder.Instance != null ? LevelBuilder.Instance.Root : null;
-            var go = Prims.Create("Spark", parent, Prims.Circle, new Color(1f, 0.9f, 0.4f, 0.8f), at, Vector2.one * 0.35f, 25);
+            var go = Prims.Create("Spark", transform.parent, Prims.Circle, new Color(1f, 0.9f, 0.4f, 0.8f), at, Vector2.one * 0.35f, 25);
             Destroy(go, 0.06f);
         }
     }

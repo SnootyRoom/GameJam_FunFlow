@@ -6,35 +6,48 @@ namespace CatTanks
 {
     public static class Prims
     {
-        static Sprite _square, _circle;
+        enum Shape { Square, Circle, Triangle, Ring }
+        static Sprite _square, _circle, _triangle, _ring;
 
         /// <summary>Квадрат 1×1 юнит (64 px при PPU 64).</summary>
-        public static Sprite Square { get { if (_square == null) _square = Make(false); return _square; } }
+        public static Sprite Square { get { if (_square == null) _square = Make(Shape.Square); return _square; } }
 
         /// <summary>Круг диаметром 1 юнит.</summary>
-        public static Sprite Circle { get { if (_circle == null) _circle = Make(true); return _circle; } }
+        public static Sprite Circle { get { if (_circle == null) _circle = Make(Shape.Circle); return _circle; } }
 
-        static Sprite Make(bool circle)
+        /// <summary>Треугольник, смотрит вправо (стрелка-указатель).</summary>
+        public static Sprite Triangle { get { if (_triangle == null) _triangle = Make(Shape.Triangle); return _triangle; } }
+
+        /// <summary>Кольцо (прицел).</summary>
+        public static Sprite Ring { get { if (_ring == null) _ring = Make(Shape.Ring); return _ring; } }
+
+        static Sprite Make(Shape shape)
         {
             const int n = 64;
             var tex = new Texture2D(n, n, TextureFormat.RGBA32, false)
             {
                 filterMode = FilterMode.Bilinear,
                 wrapMode = TextureWrapMode.Clamp,
-                name = circle ? "PrimCircle" : "PrimSquare",
+                name = "Prim" + shape,
             };
             var px = new Color32[n * n];
             for (int y = 0; y < n; y++)
                 for (int x = 0; x < n; x++)
                 {
-                    byte a = 255;
-                    if (circle)
+                    float fx = x + 0.5f, fy = y + 0.5f;
+                    float dx = fx - n / 2f, dy = fy - n / 2f;
+                    float r = Mathf.Sqrt(dx * dx + dy * dy);
+                    float a = 1f;
+                    switch (shape)
                     {
-                        float dx = x + 0.5f - n / 2f, dy = y + 0.5f - n / 2f;
-                        float d = Mathf.Sqrt(dx * dx + dy * dy);
-                        a = (byte)(Mathf.Clamp01(n / 2f - d) * 255); // сглаженный край
+                        case Shape.Circle: a = Mathf.Clamp01(n / 2f - r); break;
+                        case Shape.Ring: a = Mathf.Clamp01(n / 2f - r) * Mathf.Clamp01(r - (n / 2f - 7f)); break;
+                        case Shape.Triangle:
+                            // вершина справа по центру, основание слева: |dy| <= (n - fx) / 2
+                            a = Mathf.Clamp01((n - fx) / 2f - Mathf.Abs(dy) + 0.5f);
+                            break;
                     }
-                    px[y * n + x] = new Color32(255, 255, 255, a);
+                    px[y * n + x] = new Color32(255, 255, 255, (byte)(a * 255));
                 }
             tex.SetPixels32(px);
             tex.Apply();

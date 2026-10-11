@@ -440,26 +440,7 @@ namespace CatTanks.Level
 
             void MergeWalls()
             {
-                var used = new bool[W, H];
-                for (int y = 0; y < H; y++)
-                    for (int x = 0; x < W; x++)
-                    {
-                        if (used[x, y] || d.tiles[x, y] == Tile.Floor) continue;
-                        int w = 1;
-                        while (x + w < W && !used[x + w, y] && d.tiles[x + w, y] != Tile.Floor) w++;
-                        int h = 1;
-                        while (y + h < H && RowSolid(x, y + h, w, used)) h++;
-                        for (int yy = y; yy < y + h; yy++)
-                            for (int xx = x; xx < x + w; xx++) used[xx, yy] = true;
-                        d.wallRects.Add(new GridRect(x, y, w, h));
-                    }
-            }
-
-            bool RowSolid(int x, int y, int w, bool[,] used)
-            {
-                for (int xx = x; xx < x + w; xx++)
-                    if (used[xx, y] || d.tiles[xx, y] == Tile.Floor) return false;
-                return true;
+                d.wallRects = GridMerge.Merge(W, H, (x, y) => d.tiles[x, y] != Tile.Floor);
             }
 
             // ---------------------------------------------------------------- Утилиты

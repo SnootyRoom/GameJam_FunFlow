@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace CatTanks
 {
-    public class EnemyShooter : MonoBehaviour
+    public class EnemyShooter : MonoBehaviour, ILevelActor
     {
         public Transform turret;
         public float bodyRadius = 0.4f;
@@ -21,9 +21,12 @@ namespace CatTanks
         public Color bulletColor = new Color(1f, 0.35f, 0.9f);
         public bool drawDebugShot = true;
 
+        LevelContext _ctx;
         float _timer;
         Vector2 _aimDir = Vector2.right;
         readonly List<Vector2> _debugPoints = new List<Vector2>();
+
+        public void Init(LevelContext ctx) { _ctx = ctx; }
 
         void Start()
         {
@@ -32,9 +35,8 @@ namespace CatTanks
 
         void Update()
         {
-            var lb = LevelBuilder.Instance;
-            if (lb == null || lb.Player == null || !lb.Player.activeInHierarchy) return;
-            var player = lb.Player.transform;
+            if (_ctx == null || !_ctx.PlayerAlive) return;
+            var player = _ctx.Player.transform;
 
             if (turret != null)
             {

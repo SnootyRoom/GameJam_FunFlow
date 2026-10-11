@@ -1,4 +1,5 @@
 // Ползун: замечает игрока, бежит к нему по A* через сетку уровня и таранит.
+// Всё, что ему нужно, приходит в Init — синглтонов нет, можно тестировать в пустой сцене.
 using System.Collections.Generic;
 using CatTanks.Level;
 using UnityEngine;
@@ -6,7 +7,7 @@ using UnityEngine;
 namespace CatTanks
 {
     [RequireComponent(typeof(Rigidbody2D))]
-    public class EnemyCrawler : MonoBehaviour
+    public class EnemyCrawler : MonoBehaviour, ILevelActor
     {
         public float speed = 2.2f;
         public float aggroRange = 9f;        // замечает игрока на этой дистанции, если видит его
@@ -15,11 +16,14 @@ namespace CatTanks
         public int contactDamage = 1;
         public float contactCooldown = 1f;
 
+        LevelContext _ctx;
         Rigidbody2D _rb;
         List<GridPos> _path;
         int _index;
         float _nextRepath, _nextHit;
         bool _aggro;
+
+        public void Init(LevelContext ctx) { _ctx = ctx; }
 
         void Awake()
         {
@@ -28,22 +32,21 @@ namespace CatTanks
 
         void Update()
         {
-            var lb = LevelBuilder.Instance;
-            if (lb == null || lb.Player == null || !lb.Player.activeInHierarchy) { _path = null; return; }
+            if (_ctx == null || !_ctx.PlayerAlive) { _path = null; return; }
 
-            Vector2 me = transform.position, target = lb.Player.transform.position;
+            Vector2 me = transform.position, target = _ctx.Player.transform.position;
             float dist = Vector2.Distance(me, target);
             if (!_aggro)
             {
                 if (dist < hearRange) _aggro = true;
-                else if (dist < aggroRange && CanSee(me, target, lb.Player.transform)) _aggro = true;
+                else if (dist < aggroRange && CanSee(me, target, _ctx.Player.transform)) _aggro = true;
                 if (!_aggro) return;
             }
 
             if (Time.time >= _nextRepath)
             {
                 _nextRepath = Time.time + repathInterval * Random.Range(0.8f, 1.2f); // разносим по кадрам
-                _path = lb.Pathfinder.FindPath(LevelBuilder.WorldToCell(me), LevelBuilder.WorldToCell(target));
+                _path = _ctx.Pathfinder.FindPath(LevelGrid.WorldToCell(me), LevelGrid.WorldToCell(target));
                 _index = 1;
             }
         }
@@ -51,7 +54,7 @@ namespace CatTanks
         void FixedUpdate()
         {
             if (_path == null || _index >= _path.Count) return;
-            Vector2 wp = LevelBuilder.CellToWorld(_path[_index]);
+            Vector2 wp = LevelGrid.CellToWorld(_path[_index]);
             Vector2 delta = wp - _rb.position;
             if (delta.magnitude < 0.15f) { _index++; return; }
 
@@ -70,9 +73,9 @@ namespace CatTanks
 
         void OnCollisionStay2D(Collision2D c)
         {
-            if (Time.time < _nextHit || c.collider.GetComponentInParent<PlayerTank>() == null) return;
+            if (Time.time < _nextHit) return;
             var hp = c.collider.GetComponentInParent<Health>();
-            if (hp == null) return;
+            if (hp == null || !hp.isPlayer) return; // работает с любым скриптом игрока, важен только Health.isPlayer
             hp.Damage(contactDamage);
             _nextHit = Time.time + contactCooldown;
         }

@@ -42,6 +42,17 @@ namespace CatTanks
 #endif
         }
 
+        /// <summary>Esc или P — пауза.</summary>
+        public static bool PausePressed()
+        {
+#if ENABLE_INPUT_SYSTEM
+            var k = Keyboard.current;
+            return k != null && (k.escapeKey.wasPressedThisFrame || k.pKey.wasPressedThisFrame);
+#else
+            return Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.P);
+#endif
+        }
+
         /// <summary>R — новый случайный уровень (для отладки).</summary>
         public static bool RegeneratePressed()
         {

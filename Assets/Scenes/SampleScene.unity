@@ -344,7 +344,11 @@ MonoBehaviour:
         m_SelectedSource:
           rid: -2
         m_Provider2DCache:
-          rid: -2
+          rid: 1956100719206727686
+    - rid: 1956100719206727686
+      type: {class: 'Provider2DCache`1[[UnityEngine.Rendering.Universal.Light2DProvider, Unity.RenderPipelines.Universal.2D.Runtime]]', ns: UnityEngine.Rendering.Universal, asm: Unity.RenderPipelines.Universal.2D.Runtime}
+      data:
+        m_Cache: []
 --- !u!4 &619394802
 Transform:
   m_ObjectHideFlags: 0
@@ -360,7 +364,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1765872540
+--- !u!1 &621615301
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -368,27 +372,102 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1765872542}
-  - component: {fileID: 1765872541}
+  - component: {fileID: 621615304}
+  - component: {fileID: 621615303}
+  - component: {fileID: 621615302}
+  - component: {fileID: 621615305}
   m_Layer: 0
-  m_Name: LevelBuilder
+  m_Name: Game
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1765872541
+--- !u!114 &621615302
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1765872540}
+  m_GameObject: {fileID: 621615301}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 160ba4729897e174d884e35b2e10b299, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CatTanks.EntitySpawner
+  playerPrefab: {fileID: 0}
+  crawlerPrefab: {fileID: 0}
+  shooterPrefab: {fileID: 0}
+  crabPrefab: {fileID: 0}
+  crawlerColor: {r: 0.85, g: 0.25, b: 0.25, a: 1}
+  shooterColor: {r: 0.6, g: 0.25, b: 0.8, a: 1}
+  crabColor: {r: 0.95, g: 0.55, b: 0.1, a: 1}
+--- !u!114 &621615303
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 621615301}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5c325d2bede248f4bbce47251c22cafe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CatTanks.LevelBuilder
+  fitToCell: 1
+  floor:
+    prefab: {fileID: 7435533735238695741, guid: 0fdc1a01853cd6b43a5ab7cce25b8a22, type: 3}
+    sprite: {fileID: 0}
+    material: {fileID: 0}
+    tilesPerCell: 1
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    color: {r: 0.86, g: 0.84, b: 0.79, a: 1}
+  walls:
+    prefab: {fileID: 5237600947840427426, guid: b6de29e6b2a426541bb365d49df4b25e, type: 3}
+    sprite: {fileID: 0}
+    material: {fileID: 0}
+    tilesPerCell: 1
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    color: {r: 0.27, g: 0.28, b: 0.31, a: 1}
+  cover:
+    prefab: {fileID: 0}
+    sprite: {fileID: 0}
+    material: {fileID: 0}
+    tilesPerCell: 1
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    color: {r: 0.55, g: 0.4, b: 0.24, a: 1}
+  startPrefab: {fileID: 3495671725631651651, guid: 0b03bf10d5a022e45974b1d0e465e0ef, type: 3}
+  exitPrefab: {fileID: 0}
+  startColor: {r: 0.2, g: 0.7, b: 0.3, a: 0.5}
+  exitColor: {r: 1, g: 0.8, b: 0.1, a: 0.7}
+  drawGizmos: 1
+--- !u!4 &621615304
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 621615301}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 2.67372, y: 0.38538, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &621615305
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 621615301}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b50f577a969d38241932b2ebf1c22c86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CatTanks.GameFlow
   settings:
     seed: 0
     width: 40
@@ -411,37 +490,68 @@ MonoBehaviour:
     spawnCrabGuard: 1
     restLeaf: 1
     maxAttempts: 30
-  generateOnStart: 1
-  debugKeys: 1
+  startDifficulty: 1
+  autoStart: 1
+  requireAllEnemiesDead: 0
+  levelCompleteDelay: 1.5
   restartDelay: 1.5
-  floorPrefab: {fileID: 0}
-  wallPrefab: {fileID: 0}
-  coverPrefab: {fileID: 0}
-  startPrefab: {fileID: 0}
-  exitPrefab: {fileID: 0}
-  playerPrefab: {fileID: 0}
-  crawlerPrefab: {fileID: 0}
-  shooterPrefab: {fileID: 0}
-  crabPrefab: {fileID: 0}
-  floorColor: {r: 0.86, g: 0.84, b: 0.79, a: 1}
-  wallColor: {r: 0.27, g: 0.28, b: 0.31, a: 1}
-  coverColor: {r: 0.55, g: 0.4, b: 0.24, a: 1}
-  startColor: {r: 0.2, g: 0.7, b: 0.3, a: 0.5}
-  exitColor: {r: 1, g: 0.8, b: 0.1, a: 0.7}
-  crawlerColor: {r: 0.85, g: 0.25, b: 0.25, a: 1}
-  shooterColor: {r: 0.6, g: 0.25, b: 0.8, a: 1}
-  crabColor: {r: 0.95, g: 0.55, b: 0.1, a: 1}
-  drawGizmos: 1
---- !u!4 &1765872542
+  debugKeys: 1
+--- !u!1 &933727910
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 933727912}
+  - component: {fileID: 933727911}
+  m_Layer: 0
+  m_Name: UI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &933727911
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 933727910}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1512f09455086584899310b2efee3a2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CatTanks.UI.GameUI
+  flow: {fileID: 0}
+  showMainMenu: 1
+  gameTitle: "\u041A\u043E\u0442 \u0432 \u0442\u0430\u043D\u043A\u0435"
+  controlsHint: "WASD \u2014 \u0435\u0445\u0430\u0442\u044C   \u041C\u044B\u0448\u044C \u2014 \u0446\u0435\u043B\u0438\u0442\u044C\u0441\u044F   \u041B\u041A\u041C \u2014 \u043E\u0433\u043E\u043D\u044C   Esc \u2014 \u043F\u0430\u0443\u0437\u0430"
+  font: {fileID: 0}
+  logo: {fileID: 0}
+  heartFull: {fileID: 0}
+  heartEmpty: {fileID: 0}
+  exitArrow: {fileID: 0}
+  crosshair: {fileID: 0}
+  buttonSprite: {fileID: 0}
+  panelSprite: {fileID: 0}
+  accent: {r: 1, g: 0.65, b: 0.25, a: 1}
+  buttonColor: {r: 0.22, g: 0.24, b: 0.28, a: 0.95}
+  textColor: {r: 1, g: 1, b: 1, a: 1}
+  dimColor: {r: 0, g: 0, b: 0, a: 0.6}
+  heartColor: {r: 0.95, g: 0.3, b: 0.35, a: 1}
+--- !u!4 &933727912
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1765872540}
+  m_GameObject: {fileID: 933727910}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: -7.36389, y: -1.99022, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -453,4 +563,5 @@ SceneRoots:
   m_Roots:
   - {fileID: 519420032}
   - {fileID: 619394802}
-  - {fileID: 1765872542}
+  - {fileID: 621615304}
+  - {fileID: 933727912}

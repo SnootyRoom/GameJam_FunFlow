@@ -1,5 +1,6 @@
 // Тестовый танк игрока: корпус ездит, башня смотрит на курсор, ЛКМ — выстрел.
-// Если у тебя в команде танк пишет другой человек — можно выкинуть, генератору он не нужен.
+// Заготовка для разработчика игрока: можно переписать целиком. Важно только, чтобы на объекте
+// был Health с isPlayer, Collider2D и Rigidbody2D (см. README). ILevelActor — по желанию.
 using UnityEngine;
 
 namespace CatTanks
@@ -62,6 +63,7 @@ namespace CatTanks
 
         void Update()
         {
+            if (Time.timeScale == 0f) { _move = Vector2.zero; return; } // пауза или экран победы
             _move = GameInput.Move();
 
             // башня → на курсор

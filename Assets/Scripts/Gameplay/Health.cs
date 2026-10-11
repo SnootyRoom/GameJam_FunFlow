@@ -66,16 +66,9 @@ namespace CatTanks
 
         void Die()
         {
-            OnDeath?.Invoke();
-            if (isPlayer)
-            {
-                gameObject.SetActive(false);
-                if (LevelBuilder.Instance != null) LevelBuilder.Instance.OnPlayerDied();
-            }
-            else
-            {
-                Destroy(gameObject);
-            }
+            OnDeath?.Invoke(); // GameFlow слушает это событие у игрока и перезапускает уровень
+            if (isPlayer) gameObject.SetActive(false);
+            else Destroy(gameObject);
         }
     }
 }
