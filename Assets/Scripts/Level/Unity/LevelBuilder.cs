@@ -59,8 +59,14 @@ namespace CatTanks
         {
             Clear();
             Data = d;
+            // Корень уровня — отдельный объект строго в (0,0,0), без родителя.
+            // Раньше он был ребёнком объекта Game: если Game стоял не в нуле (или был повёрнут/отмасштабирован),
+            // коллайдеры стен (заданы смещениями внутри Root) уезжали от картинок (заданы мировыми координатами),
+            // и танк упирался в невидимые стены или проезжал сквозь видимые.
             Root = new GameObject("Level").transform;
-            Root.SetParent(transform, false);
+            Root.position = Vector3.zero;
+            Root.rotation = Quaternion.identity;
+            Root.localScale = Vector3.one;
 
             BuildSurface("Floor", floor, -10, new List<GridRect> { new GridRect(0, 0, d.width, d.height) },
                          (x, y) => d.tiles[x, y] == Tile.Floor);
