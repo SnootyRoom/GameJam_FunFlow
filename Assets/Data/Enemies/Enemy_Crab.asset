@@ -14,20 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   prefab: {fileID: 0}
   footprint: 2
-  maxHp: 5
-  invulnerableAfterHit: 0.05
-  moveSpeed: 1.0
-  aggroRange: 6
-  hearRange: 3
-  contactDamage: 1
-  fireInterval: 1.6
-  bulletSpeed: 6
-  maxBounces: 2
-  sightRange: 14
-  color: {r: 0.95, g: 0.55, b: 0.1, a: 1}
-  size: 1.7
-  sprite: {fileID: 21300000, guid: 5a47f73466d64ae5a728492709e087a7, type: 3}
-  spriteFacing: 90
   moves: 1
   shoots: 1
   spawnOnLevels: 1
@@ -35,3 +21,23 @@ MonoBehaviour:
   spawnWeight: 1
   minDifficulty: 2
   maxPerLevel: 1
+  sprite: {fileID: 21300000, guid: 5a47f73466d64ae5a728492709e087a7, type: 3}
+  spriteFacing: 90
+  size: 1.7
+  color: {r: 0.95, g: 0.55, b: 0.1, a: 1}
+  maxHp: 5
+  invulnerableAfterHit: 0.05
+  moveSpeed: 1
+  aggroRange: 8
+  hearRange: 3
+  repathInterval: 0.4
+  contactDamage: 1
+  contactCooldown: 1
+  fireInterval: 1.6
+  bulletSpeed: 6
+  maxBounces: 2
+  sightRange: 14
+  aimErrorDegrees: 2
+  turnSpeed: 270
+  bulletColor: {r: 1, g: 0.35, b: 0.9, a: 1}
+  bulletSprite: {fileID: 0}

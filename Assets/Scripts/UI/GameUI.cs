@@ -95,25 +95,33 @@ namespace CatTanks.UI
         void WireButtons()
         {
             var m = _ui.menu;
-            m.play.onActivated.AddListener(flow.StartNewGame);
-            m.settings.onActivated.AddListener(() => m.ShowSettings(true));
-            m.quit.onActivated.AddListener(flow.Quit);
-            m.back.onActivated.AddListener(() => m.ShowSettings(false));
-            m.fullscreen.onActivated.AddListener(ToggleFullscreen);
-            m.sound.onActivated.AddListener(ToggleSound);
+            On(m.play, flow.StartNewGame);
+            On(m.tutorial, () => m.ShowPage(MainMenuView.Page.Tutorial));
+            On(m.settings, () => m.ShowPage(MainMenuView.Page.Settings));
+            On(m.quit, flow.Quit);
+            On(m.back, () => m.ShowPage(MainMenuView.Page.Main));
+            On(m.tutorialBack, () => m.ShowPage(MainMenuView.Page.Main));
+            On(m.fullscreen, ToggleFullscreen);
+            On(m.sound, ToggleSound);
 
             var p = _ui.pause;
-            p.resume.onActivated.AddListener(() => flow.Pause(false));
-            p.restart.onActivated.AddListener(flow.RestartLevel);
-            p.tutorial.onActivated.AddListener(() => p.ShowPage(PauseView.Page.Tutorial));
-            p.settings.onActivated.AddListener(() => p.ShowPage(PauseView.Page.Settings));
-            p.mainMenu.onActivated.AddListener(flow.GoToMenu);
-            p.fullscreen.onActivated.AddListener(ToggleFullscreen);
-            p.sound.onActivated.AddListener(ToggleSound);
-            p.settingsBack.onActivated.AddListener(() => p.ShowPage(PauseView.Page.Main));
-            p.tutorialBack.onActivated.AddListener(() => p.ShowPage(PauseView.Page.Main));
+            On(p.resume, () => flow.Pause(false));
+            On(p.restart, flow.RestartLevel);
+            On(p.tutorial, () => p.ShowPage(PauseView.Page.Tutorial));
+            On(p.settings, () => p.ShowPage(PauseView.Page.Settings));
+            On(p.mainMenu, flow.GoToMenu);
+            On(p.fullscreen, ToggleFullscreen);
+            On(p.sound, ToggleSound);
+            On(p.settingsBack, () => p.ShowPage(PauseView.Page.Main));
+            On(p.tutorialBack, () => p.ShowPage(PauseView.Page.Main));
 
             RefreshSettingsLabels(Screen.fullScreen);
+        }
+
+        /// <summary>Кнопки может не быть в префабе, собранном старой версией сборщика, — тогда просто пропускаем.</summary>
+        static void On(PixelButton button, UnityEngine.Events.UnityAction action)
+        {
+            if (button != null) button.onActivated.AddListener(action);
         }
 
         // Настройки одни на главное меню и паузу — подписи обновляем в обоих местах.
@@ -146,7 +154,7 @@ namespace CatTanks.UI
         void HandleState(GameState s)
         {
             _ui.menu.gameObject.SetActive(s == GameState.Menu);
-            if (s == GameState.Menu) _ui.menu.ShowSettings(false); // в меню всегда с главной колонки
+            if (s == GameState.Menu) _ui.menu.ShowPage(MainMenuView.Page.Main); // в меню всегда с главной колонки
             _ui.pause.gameObject.SetActive(s == GameState.Paused);
             if (s == GameState.Paused) _ui.pause.ShowPage(PauseView.Page.Main); // пауза всегда открывается с главной
             _ui.hud.gameObject.SetActive(s != GameState.Menu);

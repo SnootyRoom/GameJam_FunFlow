@@ -71,7 +71,6 @@ namespace CatTanks.EditorTools
         {
             Directory.CreateDirectory(UiPaths.GeneratedArt);
             if (t.pixelPanel == null) t.pixelPanel = SavePng(UIFactory.PixelPanelSprite(), "pixel_panel", new Vector4(4, 4, 4, 4), FilterMode.Point);
-            if (t.pixelCursor == null) t.pixelCursor = SavePng(UIFactory.PixelArrowSprite(), "pixel_cursor", Vector4.zero, FilterMode.Point);
             if (t.circle == null) t.circle = SavePng(Prims.Circle, "circle", Vector4.zero, FilterMode.Bilinear);
             if (t.ring == null) t.ring = SavePng(Prims.Ring, "ring", Vector4.zero, FilterMode.Bilinear);
             if (t.triangle == null) t.triangle = SavePng(Prims.Triangle, "triangle", Vector4.zero, FilterMode.Bilinear);
@@ -79,12 +78,20 @@ namespace CatTanks.EditorTools
             t.paperPanel = SavePng(UIFactory.PaperSprite(t.pauseInk, t.pausePaperLight, t.pausePaper, t.pausePaperShade,
                                                          new Color32(0, 0, 0, 110)), "paper_panel", new Vector4(4, 4, 4, 4), FilterMode.Point);
 
+            // пустые поля темы заполняем по имени файла в Assets/Art/UI — достаточно положить картинку с нужным именем
+            FillFromArt(ref t.startButton, "button_start");
+            FillFromArt(ref t.tutorialButton, "button_tutorial");
+            FillFromArt(ref t.settingsButton, "button_settings");
+            FillFromArt(ref t.exitButton, "button_exit");
+            FillFromArt(ref t.heartFull, "heart_full");
+            FillFromArt(ref t.heartEmpty, "heart_empty");
             FillFromArt(ref t.pauseContinueButton, "pause_continue");
             FillFromArt(ref t.pauseRestartButton, "pause_restart");
             FillFromArt(ref t.pauseTutorialButton, "pause_tutorial");
             FillFromArt(ref t.pauseSettingsButton, "pause_settings");
             FillFromArt(ref t.pauseMainMenuButton, "pause_main_menu");
-            foreach (var s in new[] { t.pauseContinueButton, t.pauseRestartButton, t.pauseTutorialButton,
+            foreach (var s in new[] { t.startButton, t.tutorialButton, t.settingsButton, t.exitButton,
+                                      t.heartFull, t.heartEmpty, t.pauseContinueButton, t.pauseRestartButton, t.pauseTutorialButton,
                                       t.pauseSettingsButton, t.pauseMainMenuButton })
                 MakeCrisp(s);
 

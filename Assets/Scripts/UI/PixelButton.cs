@@ -1,6 +1,6 @@
 // Кнопка в пиксельном стиле. Два вида:
-//  • Create      — текстовая: чёрная плашка + уголки-скобки из спрайта художника, текст пиксельным шрифтом;
 //  • CreateImage — картинка художника, где текст уже нарисован (button_start и т.п.).
+//  • CreatePaper — бумажная плашка с текстом пиксельным шрифтом, для пунктов без готовой картинки.
 // Анимация пружиной (на unscaled time — работает и на паузе):
 //  наведение — кнопка приподнимается и чуть растёт; нажатие — сжимается и проседает;
 //  клик — «отскок» с перелётом, а само действие срабатывает через clickDelay, чтобы отскок успели увидеть.
@@ -15,8 +15,7 @@ namespace CatTanks.UI
     public class PixelButton : Button
     {
         public Text label;
-        public RectTransform content;       // всё, что двигается (плашка, уголки, текст)
-        public GameObject cursor;           // стрелка слева при наведении (только у текстовых кнопок)
+        public RectTransform content;       // всё, что двигается (плашка и текст)
         public Color labelNormal = Color.white;
         public Color labelHover = new Color(1f, 0.65f, 0.25f);
 
@@ -44,54 +43,6 @@ namespace CatTanks.UI
         float _scale = 1f, _scaleVel;
         Vector2 _shift, _shiftVel;
         bool _busy;
-
-        /// <summary>Внешний вид текстовой кнопки. Пустые спрайты = простая плашка цвета plateColor.</summary>
-        public struct Style
-        {
-            public Sprite plate, cornerTopLeft, cornerBottomRight;
-            public Color plateColor, labelColor, hoverColor;
-            public Font font;
-            public Sprite cursor;          // стрелка при наведении; пусто = сгенерированная
-            public int fontSize;
-        }
-
-        /// <summary>
-        /// Текстовая кнопка 360×90 (размер исходной картинки start_button). Плашка лежит со смещением 5 px внутри,
-        /// уголки — в левом верхнем и правом нижнем углах, как нарисовал художник.
-        /// </summary>
-        public static PixelButton Create(Transform parent, string name, Vector2 anchor, Vector2 pos, string text,
-                                         Style st, UnityAction onClick)
-        {
-            var b = Shell(parent, name, anchor, pos, new Vector2(360, 90));
-            var content = b.content;
-
-            var plate = UIFactory.Stretch(content, "Plate");
-            bool art = st.plate != null;
-            if (art) { plate.offsetMin = new Vector2(5, 5); plate.offsetMax = new Vector2(-5, -5); }
-            UIFactory.Image(plate, art ? st.plate : null, art ? Color.white : st.plateColor);
-
-            if (st.cornerTopLeft != null) Corner(content, "CornerTL", st.cornerTopLeft, new Vector2(0, 1));
-            if (st.cornerBottomRight != null) Corner(content, "CornerBR", st.cornerBottomRight, new Vector2(1, 0));
-
-            // текст — последним, поверх плашки и уголков; по размеру совпадает с плашкой
-            var labelRect = UIFactory.Stretch(content, "Label");
-            labelRect.offsetMin = plate.offsetMin;
-            labelRect.offsetMax = plate.offsetMax;
-            var label = UIFactory.Text(labelRect, st.font, text, st.fontSize, TextAnchor.MiddleCenter, st.labelColor);
-            UIFactory.HardShadow(label, 4, new Color(0, 0, 0, 0.9f));
-
-            var cursor = UIFactory.Rect(b.transform, "Cursor", new Vector2(0, 0.5f), new Vector2(-16, 0), new Vector2(24, 36));
-            cursor.pivot = new Vector2(1, 0.5f);
-            UIFactory.Image(cursor, st.cursor != null ? st.cursor : UIFactory.PixelArrowSprite(), st.hoverColor);
-            cursor.gameObject.SetActive(false);
-
-            b.label = label;
-            b.cursor = cursor.gameObject;
-            b.labelNormal = st.labelColor;
-            b.labelHover = st.hoverColor;
-            if (onClick != null) b.onActivated.AddListener(onClick);
-            return b;
-        }
 
         /// <summary>
         /// Кнопка-картинка: художник уже нарисовал и плашку, и текст. Размер = размер картинки × scale
@@ -148,12 +99,6 @@ namespace CatTanks.UI
             return b;
         }
 
-        static void Corner(RectTransform parent, string name, Sprite sprite, Vector2 corner)
-        {
-            var rt = UIFactory.Rect(parent, name, corner, Vector2.zero, sprite.rect.size); // 1 пиксель картинки = 1 пиксель UI
-            UIFactory.Image(rt, sprite, Color.white);
-        }
-
         // ------------------------------------------------------------------ Состояния
 
         protected override void Awake()
@@ -181,7 +126,6 @@ namespace CatTanks.UI
             if (_hot && !wasHot && Application.isPlaying) Hovered?.Invoke();
             _down = state == SelectionState.Pressed;
             if (label != null) label.color = _hot ? labelHover : labelNormal;
-            if (cursor != null) cursor.SetActive(_hot);
         }
 
         void HandleClick()

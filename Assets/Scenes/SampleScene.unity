@@ -483,9 +483,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CatTanks.GameFlow
   config: {fileID: 11400000, guid: 8a0d71270ddcbcc4790a81e0c422aefc, type: 2}
+  fx: {fileID: 11400000, guid: 3a64719787552e34d840bc2cb31bda81, type: 2}
   autoStart: 1
   requireAllEnemiesDead: 0
   friendlyFire: 1
+  bulletsCollide: 1
   levelCompleteDelay: 1.5
   restartDelay: 1.5
   debugKeys: 1
@@ -520,28 +522,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CatTanks.UI.GameUI
   flow: {fileID: 621615305}
   showMainMenu: 1
-  gameTitle: "\u041A\u043E\u0442 \u0432 \u0442\u0430\u043D\u043A\u0435"
-  controlsHint: "WASD \u2014 \u0435\u0445\u0430\u0442\u044C   \u041C\u044B\u0448\u044C \u2014 \u0446\u0435\u043B\u0438\u0442\u044C\u0441\u044F   \u041B\u041A\u041C \u2014 \u043E\u0433\u043E\u043D\u044C   Esc \u2014 \u043F\u0430\u0443\u0437\u0430"
-  font: {fileID: 12800000, guid: 4faf17a37e4b4fa7aa8ab617039bb50d, type: 3}
-  logo: {fileID: 0}
-  menuBackground: {fileID: -4550388572695364134, guid: 8002c5b8ecbbc8c45bcbd3a8df6801e1, type: 3}
-  heartFull: {fileID: 0}
-  heartEmpty: {fileID: 0}
-  exitArrow: {fileID: 0}
-  crosshair: {fileID: 0}
-  buttonSprite: {fileID: -4029351698569776409, guid: 48ccbffb1e8fc894f8f3c01a177edeef, type: 3}
-  buttonCornerTopLeft: {fileID: -3500759553075992606, guid: 48ccbffb1e8fc894f8f3c01a177edeef, type: 3}
-  buttonCornerBottomRight: {fileID: -6145263786166491265, guid: 48ccbffb1e8fc894f8f3c01a177edeef, type: 3}
-  panelSprite: {fileID: 0}
-  startButton: {fileID: -6581494120170603413, guid: a762cbb6e5691bc4bac8936ced931e86, type: 3}
-  settingsButton: {fileID: 7540231731931389959, guid: 7fb8db127de679c49927d7ac5decbff3, type: 3}
-  exitButton: {fileID: 757748561783155231, guid: 3f9bf4be637f98042b404421242ef3be, type: 3}
-  accent: {r: 0.5372549, g: 0.05490196, b: 0.28235295, a: 1}
-  buttonColor: {r: 0.22, g: 0.24, b: 0.28, a: 0.95}
-  textColor: {r: 1, g: 1, b: 1, a: 1}
-  dimColor: {r: 0.11698109, g: 0.107490174, b: 0.107490174, a: 0.6}
-  menuPanelColor: {r: 1, g: 1, b: 1, a: 0.55}
-  heartColor: {r: 0.95, g: 0.3, b: 0.35, a: 1}
+  uiPrefab: {fileID: 3659960444992577271, guid: efca16f548afd7a498ab809a549aa3e5, type: 3}
+  fallbackTheme: {fileID: 11400000, guid: 182ff6de69165cf4e97f7590a6c9a5fe, type: 2}
+  exitBlockedText: Deal with all the phones first!
 --- !u!4 &933727912
 Transform:
   m_ObjectHideFlags: 0

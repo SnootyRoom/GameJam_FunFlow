@@ -8,17 +8,21 @@ namespace CatTanks.UI
 {
     public class GameUIBuilder
     {
-        // Колонка главного меню: центр кнопок по X от левого края и положения по Y от центра экрана (экран 1920×1080)
-        const float MenuColumnX = 735f, MenuTitleY = 290f, MenuFirstButtonY = 40f, MenuButtonStep = 200f;
-        const float MenuButtonScale = 1.5f; // картинки кнопок из блоков по 8 px → блоки по 12 px, пиксели ровные
+        // Колонка главного меню по референсу: центр кнопок по X от левого края и положения по Y от центра экрана (экран 1920×1080).
+        // Картинки кнопок button_* нарисованы блоками по 8 px → масштаб 1.25 даёт ровные блоки по 10 px, как в паузе.
+        const float MenuColumnX = 530f, MenuFirstButtonY = 300f, MenuButtonStep = 198f;
+        const float MenuButtonScale = 1.25f, MenuButtonW = 456f * MenuButtonScale, MenuButtonH = 120f * MenuButtonScale;
 
         readonly UiTheme t;
         readonly Font _font;
+        readonly Sprite _paper; // бумажная плашка: подложки и кнопки без готовой картинки
 
         GameUIBuilder(UiTheme theme)
         {
             t = theme;
             _font = theme.font != null ? theme.font : UIFactory.DefaultFont();
+            _paper = Or(theme.paperPanel, UIFactory.PaperSprite(theme.pauseInk, theme.pausePaperLight, theme.pausePaper,
+                                                                theme.pausePaperShade, new Color32(0, 0, 0, 110)));
         }
 
         /// <summary>Создаёт холст GameCanvas под parent. Экраны — его дети в порядке отрисовки.</summary>
@@ -147,8 +151,7 @@ namespace CatTanks.UI
             var v = rt.gameObject.AddComponent<PauseView>();
             UIFactory.Image(rt, null, t.pauseBackdrop, true); // затемнение, заодно блокирует клики по игре
 
-            var paper = Or(t.paperPanel, UIFactory.PaperSprite(t.pauseInk, t.pausePaperLight, t.pausePaper, t.pausePaperShade,
-                                                               new Color32(0, 0, 0, 110)));
+            var paper = _paper;
             float height = -PauseFirstY + 4 * PauseStep + PauseButtonH / 2f + PausePadding;
             var panel = UIFactory.Rect(rt, "Panel", new Vector2(0.5f, 0.5f), Vector2.zero,
                                        new Vector2(PauseButtonW + 2 * PausePadding + PauseBlock, height));
@@ -232,82 +235,72 @@ namespace CatTanks.UI
                 fit.aspectRatio = t.menuBackground.rect.width / t.menuBackground.rect.height;
             }
 
-            // Раскладка по референсу: без подложки, крупный заголовок над колонкой кнопок слева,
-            // кнопки чуть заходят на кота.
+            // Раскладка по референсу: без подложки и заголовка, колонка из четырёх кнопок слева, справа кот на фоне.
             var main = UIFactory.Stretch(rt, "Main");
             v.mainGroup = main.gameObject;
 
             if (t.logo != null)
             {
-                var l = UIFactory.Rect(main, "Logo", new Vector2(0, 0.5f), new Vector2(MenuColumnX, MenuTitleY), new Vector2(820, 240));
+                var l = UIFactory.Rect(main, "Logo", new Vector2(0, 0.5f), new Vector2(MenuColumnX, MenuFirstButtonY + 230f), new Vector2(820, 240));
                 l.pivot = new Vector2(0.5f, 0.5f);
                 UIFactory.Image(l, t.logo, Color.white).preserveAspect = true;
             }
-            else MenuTitle(main, t.gameTitle);
 
-            v.play = ColumnButton(main, 0, t.startButton, "Play");
-            v.settings = ColumnButton(main, 1, t.settingsButton, "Settings");
-            v.quit = ColumnButton(main, 2, t.exitButton, "Quit");
-
-            // подсказка по управлению — одной строкой в левом нижнем углу
-            var hint = UIFactory.Text(UIFactory.Rect(main, "Hint", new Vector2(0.5f, 0), new Vector2(0, 28), new Vector2(1800, 32)),
-                                      _font, t.controlsHint, 16, TextAnchor.LowerCenter, Color.white);
-            UIFactory.HardShadow(hint, 3, new Color(0, 0, 0, 0.8f));
+            v.play = ColumnButton(main, 0, t.startButton, "START");
+            v.tutorial = ColumnButton(main, 1, t.tutorialButton, "TUTORIAL");
+            v.settings = ColumnButton(main, 2, t.settingsButton, "SETTINGS");
+            v.quit = ColumnButton(main, 3, t.exitButton, "EXIT");
 
             // Настройки — на месте главной колонки, в том же стиле. Новые пункты добавляй сюда (или прямо в префаб).
             var settings = UIFactory.Stretch(rt, "Settings");
             v.settingsGroup = settings.gameObject;
-            MenuTitle(settings, "Settings");
-            v.fullscreen = ColumnButton(settings, 0, null, v.fullscreenOn, 24);
+            MenuTitle(settings, "SETTINGS");
+            v.fullscreen = ColumnButton(settings, 1, null, v.fullscreenOn);
             v.fullscreenLabel = v.fullscreen.label;
-            v.sound = ColumnButton(settings, 1, null, v.soundOn, 24);
+            v.sound = ColumnButton(settings, 2, null, v.soundOn);
             v.soundLabel = v.sound.label;
-            v.back = ColumnButton(settings, 2, null, "Back");
+            v.back = ColumnButton(settings, 3, null, "BACK");
             settings.gameObject.SetActive(false);
+
+            // Обучение — пока подсказка по управлению на бумажной карточке; потом её заменят оверлеи.
+            var tutorial = UIFactory.Stretch(rt, "Tutorial");
+            v.tutorialGroup = tutorial.gameObject;
+            MenuTitle(tutorial, "TUTORIAL");
+            var card = UIFactory.Rect(tutorial, "Card", new Vector2(0, 0.5f),
+                                      new Vector2(MenuColumnX, MenuFirstButtonY - 1.5f * MenuButtonStep), new Vector2(MenuButtonW, 1.75f * MenuButtonStep));
+            card.pivot = new Vector2(0.5f, 0.5f);
+            UIFactory.PixelPanel(card, _paper, Color.white, PauseBlock);
+            var help = UIFactory.Stretch(card, "Controls");
+            help.offsetMin = new Vector2(36, 36);
+            help.offsetMax = new Vector2(-36, -28);
+            var text = UIFactory.Text(help, _font, t.controlsHint.Replace("   ", "\n"), 20, TextAnchor.MiddleLeft, t.pauseInk);
+            text.lineSpacing = 1.8f;
+            Object.DestroyImmediate(text.GetComponent<Shadow>());
+            v.tutorialBack = ColumnButton(tutorial, 3, null, "BACK");
+            tutorial.gameObject.SetActive(false);
             return v;
         }
 
-        /// <summary>Кнопка колонки меню: index — номер сверху. Картинка художника или текстовая кнопка того же масштаба.</summary>
-        PixelButton ColumnButton(RectTransform parent, int index, Sprite art, string label, int fontSize = 32)
+        /// <summary>Кнопка колонки меню: index — номер сверху. Картинка художника или такая же по виду бумажная плашка с текстом.</summary>
+        PixelButton ColumnButton(RectTransform parent, int index, Sprite art, string label)
         {
             var anchor = new Vector2(0, 0.5f);
             var pos = new Vector2(MenuColumnX, MenuFirstButtonY - index * MenuButtonStep);
             if (art != null) return PixelButton.CreateImage(parent, label, anchor, pos, art, MenuButtonScale, null);
-
-            var b = TextButton(parent, 0, label, fontSize);
-            var rt = (RectTransform)b.transform;
-            rt.anchorMin = rt.anchorMax = anchor;
-            rt.anchoredPosition = pos;
-            rt.localScale = Vector3.one * MenuButtonScale;
-            return b;
+            return PixelButton.CreatePaper(parent, label, anchor, pos, new Vector2(MenuButtonW, MenuButtonH), _paper, PauseBlock,
+                                           label, _font, 36, t.pauseInk, t.pauseHighlight);
         }
 
-        /// <summary>Крупный белый заголовок над колонкой, как на референсе, но пиксельным шрифтом.</summary>
+        /// <summary>Крупный белый заголовок на месте первой кнопки колонки, пиксельным шрифтом.</summary>
         void MenuTitle(RectTransform parent, string text)
         {
-            var rt = UIFactory.Rect(parent, "Title", new Vector2(0, 0.5f), new Vector2(MenuColumnX, MenuTitleY), new Vector2(1100, 160));
+            var rt = UIFactory.Rect(parent, "Title", new Vector2(0, 0.5f), new Vector2(MenuColumnX, MenuFirstButtonY), new Vector2(1100, 160));
             rt.pivot = new Vector2(0.5f, 0.5f);
-            var title = UIFactory.Text(rt, _font, text, 72, TextAnchor.MiddleCenter, Color.white);
-            UIFactory.HardShadow(title, 6, new Color(0.1f, 0.12f, 0.2f, 0.75f));
-            var outline = title.gameObject.AddComponent<Outline>(); // тонкий тёмный контур — читается и на небе, и на облаках
-            outline.effectColor = new Color(0.1f, 0.12f, 0.2f, 0.5f);
+            var title = UIFactory.Text(rt, _font, text, 64, TextAnchor.MiddleCenter, Color.white);
+            UIFactory.HardShadow(title, 6, t.pauseInk);
+            var outline = title.gameObject.AddComponent<Outline>(); // тёмный контур — читается и на небе, и на облаках
+            outline.effectColor = t.pauseInk;
             outline.effectDistance = new Vector2(3, -3);
-        }
-
-        PixelButton TextButton(RectTransform panel, float y, string label, int fontSize = 32)
-        {
-            return PixelButton.Create(panel, label, new Vector2(0.5f, 1), new Vector2(0, y), label, new PixelButton.Style
-            {
-                plate = t.buttonSprite,
-                cornerTopLeft = t.buttonCornerTopLeft,
-                cornerBottomRight = t.buttonCornerBottomRight,
-                plateColor = t.buttonColor,
-                labelColor = t.textColor,
-                hoverColor = t.accent,
-                font = _font,
-                fontSize = fontSize,
-                cursor = t.pixelCursor,
-            }, null);
         }
     }
 }

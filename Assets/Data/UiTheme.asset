@@ -17,26 +17,33 @@ MonoBehaviour:
   font: {fileID: 12800000, guid: 4faf17a37e4b4fa7aa8ab617039bb50d, type: 3}
   logo: {fileID: 0}
   menuBackground: {fileID: -4550388572695364134, guid: 8002c5b8ecbbc8c45bcbd3a8df6801e1, type: 3}
-  heartFull: {fileID: 0}
-  heartEmpty: {fileID: 0}
+  heartFull: {fileID: -1218823883695198015, guid: cb1b3afb459394147bb628ed81f6fb4d, type: 3}
+  heartEmpty: {fileID: -511133062249068954, guid: 4b17b5d5bd094b54b92de9777155f62a, type: 3}
   exitArrow: {fileID: 0}
   crosshair: {fileID: 0}
   panelSprite: {fileID: 0}
   ultIcon: {fileID: 21300000, guid: 89df69d1d22b4116bd5bd0f2a15fd1b4, type: 3}
-  buttonSprite: {fileID: -4029351698569776409, guid: 48ccbffb1e8fc894f8f3c01a177edeef, type: 3}
-  buttonCornerTopLeft: {fileID: -3500759553075992606, guid: 48ccbffb1e8fc894f8f3c01a177edeef, type: 3}
-  buttonCornerBottomRight: {fileID: -6145263786166491265, guid: 48ccbffb1e8fc894f8f3c01a177edeef, type: 3}
   startButton: {fileID: -6581494120170603413, guid: a762cbb6e5691bc4bac8936ced931e86, type: 3}
+  tutorialButton: {fileID: -1793353510728061614, guid: 13cf438ac755ee042b04b9cae917ad78, type: 3}
   settingsButton: {fileID: 7540231731931389959, guid: 7fb8db127de679c49927d7ac5decbff3, type: 3}
   exitButton: {fileID: 757748561783155231, guid: 3f9bf4be637f98042b404421242ef3be, type: 3}
-  pixelPanel: {fileID: 0}
-  pixelCursor: {fileID: 0}
-  circle: {fileID: 0}
-  ring: {fileID: 0}
-  triangle: {fileID: 0}
+  pauseContinueButton: {fileID: -3901589554980197611, guid: d84a5984af6986f4f95e97a1530266b8, type: 3}
+  pauseRestartButton: {fileID: 5504176216392022609, guid: 735888e0266b4154a8f1ee0dc08b4030, type: 3}
+  pauseTutorialButton: {fileID: -3098080910217018212, guid: 3911c6a48ed5765489182808b1d90703, type: 3}
+  pauseSettingsButton: {fileID: -5157173740967328131, guid: 44ff5477c4cba7744a27ccc5ae75367a, type: 3}
+  pauseMainMenuButton: {fileID: -6238592185178705546, guid: 5cd0a251d216acf4b92b03947aa0509d, type: 3}
+  pauseInk: {r: 0.16470589, g: 0.13333334, b: 0.2, a: 1}
+  pausePaper: {r: 0.9490196, g: 0.91764706, b: 0.827451, a: 1}
+  pausePaperLight: {r: 1, g: 0.9882353, b: 0.93333334, a: 1}
+  pausePaperShade: {r: 0.76862746, g: 0.72156864, b: 0.5882353, a: 1}
+  pauseHighlight: {r: 0.5372549, g: 0.06666667, b: 0.27450982, a: 1}
+  pauseBackdrop: {r: 0.15686275, g: 0.15686275, b: 0.1882353, a: 0.6666667}
+  pixelPanel: {fileID: 21300000, guid: 961debc3aa9a3fc4283b7be90d3155ab, type: 3}
+  paperPanel: {fileID: 21300000, guid: 19da2832484f6ff44b7b020dced02b6e, type: 3}
+  circle: {fileID: 21300000, guid: cf66af1896bf3ef4fb1108547288d2a8, type: 3}
+  ring: {fileID: 6554736390298987251, guid: 592d50a20a91aad40ad4d3cd15a98a6a, type: 3}
+  triangle: {fileID: 21300000, guid: a673ea31b9a2d464f8144e7d7273f105, type: 3}
   accent: {r: 0.5372549, g: 0.05490196, b: 0.28235295, a: 1}
-  buttonColor: {r: 0.22, g: 0.24, b: 0.28, a: 0.95}
   textColor: {r: 1, g: 1, b: 1, a: 1}
   dimColor: {r: 0.11698109, g: 0.107490174, b: 0.107490174, a: 0.6}
-  menuPanelColor: {r: 1, g: 1, b: 1, a: 0.55}
   heartColor: {r: 0.95, g: 0.3, b: 0.35, a: 1}

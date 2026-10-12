@@ -35,9 +35,10 @@ namespace CatTanks.UI
 
         public void ShowPage(Page page)
         {
+            if (mainGroup == null) return; // префаб собран старой версией сборщика — пересобери
             mainGroup.SetActive(page == Page.Main);
             settingsGroup.SetActive(page == Page.Settings);
-            tutorialGroup.SetActive(page == Page.Tutorial);
+            if (tutorialGroup != null) tutorialGroup.SetActive(page == Page.Tutorial);
         }
 
         public void SetFullscreenLabel(bool full)
