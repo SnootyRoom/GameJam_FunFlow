@@ -224,16 +224,11 @@ namespace CatTanks.UI
                 fit.aspectRatio = t.menuBackground.rect.width / t.menuBackground.rect.height;
             }
 
+            v.title = BuildTitle(rt);
+
             // Раскладка по референсу: без подложки и заголовка, колонка из четырёх кнопок слева, справа кот на фоне.
             var main = UIFactory.Stretch(rt, "Main");
             v.mainGroup = main.gameObject;
-
-            if (t.logo != null)
-            {
-                var l = UIFactory.Rect(main, "Logo", new Vector2(0, 0.5f), new Vector2(MenuColumnX, MenuFirstButtonY + 230f), new Vector2(820, 240));
-                l.pivot = new Vector2(0.5f, 0.5f);
-                UIFactory.Image(l, t.logo, Color.white).preserveAspect = true;
-            }
 
             v.play = ColumnButton(main, 0, t.startButton, "START");
             v.tutorial = ColumnButton(main, 1, t.tutorialButton, "TUTORIAL");
@@ -438,6 +433,49 @@ namespace CatTanks.UI
             var le = rt.gameObject.AddComponent<LayoutElement>();
             le.preferredWidth = le.minWidth = w;
             le.preferredHeight = le.minHeight = h;
+        }
+
+        // ------------------------------------------------------------------ Стартовый экран
+
+        // По референсу: малиновый «TANK CAT» в светлой обводке с тёмной тенью, ниже светлый подзаголовок
+        // и внизу «PRESS ANY KEY». Шрифт пиксельный — размеры кратны 8, чтобы пиксели оставались ровными.
+        TitleView BuildTitle(RectTransform menu)
+        {
+            var rt = UIFactory.Stretch(menu, "Title");
+            var v = rt.gameObject.AddComponent<TitleView>();
+            v.group = rt.gameObject.AddComponent<CanvasGroup>();
+            v.group.blocksRaycasts = false;
+
+            if (t.logo != null)
+            {
+                v.title = UIFactory.Rect(rt, "Logo", new Vector2(0, 0.5f), new Vector2(MenuColumnX, 270), new Vector2(980, 300));
+                v.title.pivot = new Vector2(0.5f, 0.5f);
+                UIFactory.Image(v.title, t.logo, Color.white).preserveAspect = true;
+            }
+            else v.title = TitleText(rt, "TankCat", t.titleText, 120, new Vector2(MenuColumnX, 270), t.pauseHighlight, t.pausePaperLight, 8);
+
+            v.subtitle = TitleText(rt, "Subtitle", t.subtitleText, 40, new Vector2(MenuColumnX, 140), t.pausePaperLight, t.pauseInk, 4);
+            v.prompt = TitleText(rt, "PressAnyKey", t.pressKeyText, 48, new Vector2(MenuColumnX, -360), t.pausePaperLight, t.pauseInk, 4);
+
+            var flash = UIFactory.Stretch(rt, "Flash");
+            v.flash = UIFactory.Image(flash, null, new Color(1, 1, 1, 0));
+            return v;
+        }
+
+        /// <summary>Пиксельная надпись: заливка, обводка на outline px и жёсткая тень того же цвета, что и тёмный контур.</summary>
+        RectTransform TitleText(RectTransform parent, string name, string text, int size, Vector2 pos, Color fill, Color outline, float px)
+        {
+            var rt = UIFactory.Rect(parent, name, new Vector2(0, 0.5f), pos, new Vector2(1200, size * 2));
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            var label = UIFactory.Text(rt, _font, text, size, TextAnchor.MiddleCenter, fill);
+            Object.DestroyImmediate(label.GetComponent<Shadow>());
+            var o = label.gameObject.AddComponent<Outline>();
+            o.effectColor = outline;
+            o.effectDistance = new Vector2(px, -px);
+            var s = label.gameObject.AddComponent<Shadow>(); // после обводки — тень падает от всей надписи вместе с ней
+            s.effectColor = t.pauseInk;
+            s.effectDistance = new Vector2(px * 1.5f, -px * 1.5f);
+            return rt;
         }
     }
 }

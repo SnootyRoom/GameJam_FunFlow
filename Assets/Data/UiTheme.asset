@@ -12,6 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b54cd98d1265405fa8f7e13bd1b55fbe, type: 3}
   m_Name: UiTheme
   m_EditorClassIdentifier: 
+  titleText: TANK CAT
+  subtitleText: OPERATION:FISH
+  pressKeyText: PRESS ANY KEY
   font: {fileID: 12800000, guid: 4faf17a37e4b4fa7aa8ab617039bb50d, type: 3}
   logo: {fileID: 0}
   menuBackground: {fileID: -4550388572695364134, guid: 8002c5b8ecbbc8c45bcbd3a8df6801e1, type: 3}

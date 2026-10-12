@@ -104,6 +104,20 @@ namespace CatTanks
 #endif
         }
 
+        /// <summary>Любая клавиша клавиатуры или кнопка мыши — для стартового экрана.</summary>
+        public static bool AnyKeyPressed()
+        {
+#if ENABLE_INPUT_SYSTEM
+            var k = Keyboard.current;
+            var m = Mouse.current;
+            return (k != null && k.anyKey.wasPressedThisFrame) ||
+                   (m != null && (m.leftButton.wasPressedThisFrame || m.rightButton.wasPressedThisFrame ||
+                                  m.middleButton.wasPressedThisFrame));
+#else
+            return Input.anyKeyDown;
+#endif
+        }
+
         /// <summary>R — новый случайный уровень (для отладки).</summary>
         public static bool RegeneratePressed()
         {

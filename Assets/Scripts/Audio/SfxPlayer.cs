@@ -25,6 +25,8 @@ namespace CatTanks
             NutStrike.Impacted += OnNutImpact;
             PixelButton.Hovered += OnUiHover;
             PixelButton.Clicked += OnUiClick;
+            TitleView.Dismissed += OnTitleDismissed;
+            _flow.OnStateChanged += OnStateChanged;
             _flow.OnLevelStarted += OnLevelStarted;
             _flow.OnLevelCompleted += OnLevelCompleted;
             _flow.OnPlayerKilled += OnPlayerKilled;
@@ -45,6 +47,8 @@ namespace CatTanks
             NutStrike.Impacted -= OnNutImpact;
             PixelButton.Hovered -= OnUiHover;
             PixelButton.Clicked -= OnUiClick;
+            TitleView.Dismissed -= OnTitleDismissed;
+            _flow.OnStateChanged -= OnStateChanged;
             _flow.OnLevelStarted -= OnLevelStarted;
             _flow.OnLevelCompleted -= OnLevelCompleted;
             _flow.OnPlayerKilled -= OnPlayerKilled;
@@ -108,5 +112,15 @@ namespace CatTanks
         // ----- интерфейс -----
         void OnUiHover() => Sfx.Play(SfxId.UiHover, 0.6f, 0.03f);
         void OnUiClick() => Sfx.Play(SfxId.UiClick, 0.8f, 0.02f);
+        void OnTitleDismissed() => Sfx.Play(SfxId.MenuEnter, 0.9f, 0f);
+
+        // пауза: звук только на переходах игра ↔ пауза (не при уходе в меню или смерти)
+        GameState _lastState = GameState.Menu;
+        void OnStateChanged(GameState s)
+        {
+            if (s == GameState.Paused && _lastState == GameState.Playing) Sfx.Play(SfxId.PauseOpen, 0.8f, 0f);
+            else if (s == GameState.Playing && _lastState == GameState.Paused) Sfx.Play(SfxId.PauseClose, 0.8f, 0f);
+            _lastState = s;
+        }
     }
 }

@@ -23,6 +23,7 @@ namespace CatTanks.UI
         GameUIView _ui;
         PlayerUltimate _ult;
         System.Action _afterTutorial;
+        bool _titleDone;
 
         const string SoundPref = "sound_on";
         const string TutorialSeenPref = "tutorial_seen";
@@ -63,6 +64,7 @@ namespace CatTanks.UI
             flow.OnExitBlocked += HandleExitBlocked;
             flow.OnEnemyCountChanged += _ui.hud.SetEnemies;
             if (_ui.tutorial != null) _ui.tutorial.Closed += HandleTutorialClosed;
+            if (_ui.menu.title != null) _ui.menu.title.Finished += HandleTitleFinished;
         }
 
         void Start()
@@ -191,7 +193,7 @@ namespace CatTanks.UI
         void HandleState(GameState s)
         {
             _ui.menu.gameObject.SetActive(s == GameState.Menu);
-            if (s == GameState.Menu) _ui.menu.ShowPage(MainMenuView.Page.Main); // в меню всегда с главной колонки
+            if (s == GameState.Menu) EnterMenu();
             _ui.pause.gameObject.SetActive(s == GameState.Paused);
             if (s == GameState.Paused) _ui.pause.ShowPage(PauseView.Page.Main); // пауза всегда открывается с главной
             if (s != GameState.Menu && s != GameState.Paused) HideTutorial(); // Esc на паузе — обучение закрывается вместе с ней
@@ -200,6 +202,26 @@ namespace CatTanks.UI
             bool playing = s == GameState.Playing;
             _ui.hud.SetCrosshairVisible(playing);
             Cursor.visible = !playing; // в бою вместо курсора — прицел
+        }
+
+        /// <summary>При запуске — стартовый экран, дальше всегда главная колонка (кнопки выезжают).</summary>
+        void EnterMenu()
+        {
+            var title = _ui.menu.title;
+            if (!_titleDone && title != null)
+            {
+                _ui.menu.ShowPage(MainMenuView.Page.Title);
+                title.Show();
+                return;
+            }
+            _ui.menu.ShowPage(MainMenuView.Page.Main);
+            _ui.menu.PlayIntro();
+        }
+
+        void HandleTitleFinished()
+        {
+            _titleDone = true;
+            if (flow.State == GameState.Menu) EnterMenu();
         }
 
         void HandleLevelStarted(LevelContext ctx)

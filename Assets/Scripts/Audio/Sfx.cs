@@ -20,6 +20,7 @@ namespace CatTanks
         Shot, EnemyShot, Bounce, Hit, WallHit, Explosion, PlayerHurt, PlayerDeath, Pickup,
         UltReady, NutWhistle, NutImpact, Win, UiClick, UiHover, Alert, Empty, Purchase,
         LevelStart, ReloadStart, ReloadEnd, WhizBy, DeathKnell, BossRoar, Combo, Coin, Heal,
+        MenuEnter, PauseOpen, PauseClose, // новые — только в конец: индексы overrides не должны съехать
     }
 
     public class Sfx : MonoBehaviour
@@ -377,6 +378,37 @@ namespace CatTanks
                     d = Buf(0.08f);
                     NoiseF(d, 0f, 0.004f, 0.6f, 0.0002f, 0.0015f, F.HP, 4000, 4000, 0.7f);
                     Modal(d, 0f, 3200, new[] { 1f, 1.7f }, new[] { 1f, 0.4f }, new[] { 0.012f, 0.008f }, 0.3f);
+                    Normalize(d, 0.5f);
+                    break;
+
+                case SfxId.MenuEnter: // стартовый экран → меню: нарастающий «вжух», мягкий удар и аккорд колокольчиков
+                    d = Buf(1.6f);
+                    NoiseF(d, 0f, 0.35f, 0.5f, 0.22f, 0.06f, F.BP, 300, 3200, 1.1f);
+                    SubKick(d, 0.2f, 0.18f, 110, 50, 0.7f);
+                    Bell(d, 0.2f, 784, 0.35f, 0.8f);
+                    Bell(d, 0.26f, 1175, 0.3f, 0.8f);
+                    Bell(d, 0.32f, 1568, 0.25f, 1f);
+                    Room(d, 0.3f, 0.5f, 6);
+                    Normalize(d, 0.7f);
+                    break;
+
+                case SfxId.PauseOpen: // мир «встал»: деревянный щелчок-фиксатор и «остановка плёнки» — без мелодии
+                    d = Buf(0.6f);
+                    Modal(d, 0f, 900, new[] { 1f, 2.4f }, new[] { 1f, 0.3f }, new[] { 0.02f, 0.01f }, 0.35f); // щелчок
+                    SubKick(d, 0f, 0.15f, 90, 45, 0.5f);                                                   // мягкий удар
+                    Sine(d, 0.01f, 0.32f, 220, 60, 0.45f, 0.003f, 0.1f);                                   // тон уходит вниз
+                    NoiseF(d, 0.01f, 0.35f, 0.4f, 0.005f, 0.12f, F.LP, 1800, 150, 0.9f);                   // шум глохнет
+                    Room(d, 0.15f, 0.2f, 24);
+                    Normalize(d, 0.5f);
+                    break;
+
+                case SfxId.PauseClose: // обратная пара к PauseOpen: «плёнка» разгоняется, в конце щелчок-фиксатор
+                    d = Buf(0.6f);
+                    Sine(d, 0f, 0.22f, 60, 220, 0.4f, 0.12f, 0.05f);                                       // тон поднимается
+                    NoiseF(d, 0f, 0.24f, 0.35f, 0.15f, 0.04f, F.LP, 150, 1800, 0.9f);                      // шум нарастает
+                    Modal(d, 0.2f, 1100, new[] { 1f, 2.4f }, new[] { 1f, 0.3f }, new[] { 0.02f, 0.01f }, 0.35f); // щелчок
+                    SubKick(d, 0.2f, 0.12f, 100, 55, 0.35f);                                               // лёгкий толчок — поехали
+                    Room(d, 0.15f, 0.2f, 24);
                     Normalize(d, 0.5f);
                     break;
 

@@ -8,9 +8,14 @@ namespace CatTanks.UI
     [CreateAssetMenu(menuName = "CatTanks/UI Theme", fileName = "UiTheme")]
     public class UiTheme : ScriptableObject
     {
+        [Header("Стартовый экран")]
+        public string titleText = "TANK CAT";
+        public string subtitleText = "OPERATION:FISH";
+        public string pressKeyText = "PRESS ANY KEY";
+
         [Header("Шрифт и картинки художника (пусто = примитивы)")]
         public Font font;
-        public Sprite logo;                   // вместо текстового заголовка, ~1024×512
+        public Sprite logo;                   // картинка вместо текста «TANK CAT» на стартовом экране
         public Sprite menuBackground;         // фон главного меню; заполняет экран, лишнее обрезается
         public Sprite heartFull;              // 48×48
         public Sprite heartEmpty;
