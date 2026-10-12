@@ -1,4 +1,4 @@
-// Связывает игровые события со звуками Sfx (громкости и высоты — из ветки shishki, Feedback.cs).
+// Связывает игровые события со звуками Sfx и музыкой Music (громкости и высоты — из ветки shishki, Feedback.cs).
 // Геймплейный код про звук ничего не знает — только поднимает события; как и FxPlayer, создаётся в GameFlow.
 using CatTanks.UI;
 using UnityEngine;
@@ -24,9 +24,10 @@ namespace CatTanks
             NutStrike.Launched += OnNutLaunched;
             NutStrike.Impacted += OnNutImpact;
             PixelButton.Hovered += OnUiHover;
-            PixelButton.Clicked += OnUiClick;
+            PixelButton.Pressed += OnUiClick;
             TitleView.Dismissed += OnTitleDismissed;
             _flow.OnStateChanged += OnStateChanged;
+            ApplyMusic(_flow.State);
             _flow.OnLevelStarted += OnLevelStarted;
             _flow.OnLevelCompleted += OnLevelCompleted;
             _flow.OnPlayerKilled += OnPlayerKilled;
@@ -46,7 +47,7 @@ namespace CatTanks
             NutStrike.Launched -= OnNutLaunched;
             NutStrike.Impacted -= OnNutImpact;
             PixelButton.Hovered -= OnUiHover;
-            PixelButton.Clicked -= OnUiClick;
+            PixelButton.Pressed -= OnUiClick;
             TitleView.Dismissed -= OnTitleDismissed;
             _flow.OnStateChanged -= OnStateChanged;
             _flow.OnLevelStarted -= OnLevelStarted;
@@ -121,6 +122,19 @@ namespace CatTanks
             if (s == GameState.Paused && _lastState == GameState.Playing) Sfx.Play(SfxId.PauseOpen, 0.8f, 0f);
             else if (s == GameState.Playing && _lastState == GameState.Paused) Sfx.Play(SfxId.PauseClose, 0.8f, 0f);
             _lastState = s;
+            ApplyMusic(s);
+        }
+
+        // музыка: меню и стартовый экран — спокойная тема, уровни — боевая; на паузе бой приглушён, после гибели тише
+        static void ApplyMusic(GameState s)
+        {
+            switch (s)
+            {
+                case GameState.Menu: Music.Play(MusicTrack.Menu); break;
+                case GameState.Paused: Music.Play(MusicTrack.Battle, muffled: true); break;
+                case GameState.PlayerDead: Music.Play(MusicTrack.Battle, duck: 0.5f); break;
+                default: Music.Play(MusicTrack.Battle); break;
+            }
         }
     }
 }

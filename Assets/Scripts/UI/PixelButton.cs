@@ -35,9 +35,11 @@ namespace CatTanks.UI
         // для звука и аналитики: любая пиксельная кнопка навелась / нажалась
         public static event System.Action Hovered;
         public static event System.Action Clicked;
+        /// <summary>Кнопку нажали (мышь вниз или Enter) — для звука: щелчок должен быть сразу, а не на отпускании.</summary>
+        public static event System.Action Pressed;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() { Hovered = null; Clicked = null; }
+        static void ResetStatics() { Hovered = null; Clicked = null; Pressed = null; }
 
         bool _hot, _down;
         float _scale = 1f, _scaleVel;
@@ -126,6 +128,18 @@ namespace CatTanks.UI
             if (_hot && !wasHot && Application.isPlaying) Hovered?.Invoke();
             _down = state == SelectionState.Pressed;
             if (label != null) label.color = _hot ? labelHover : labelNormal;
+        }
+
+        public override void OnPointerDown(PointerEventData eventData)
+        {
+            base.OnPointerDown(eventData);
+            if (eventData.button == PointerEventData.InputButton.Left && IsInteractable() && !_busy) Pressed?.Invoke();
+        }
+
+        public override void OnSubmit(BaseEventData eventData)
+        {
+            if (IsInteractable() && !_busy) Pressed?.Invoke(); // с клавиатуры «нажатие» и «клик» — одно событие
+            base.OnSubmit(eventData);
         }
 
         void HandleClick()
