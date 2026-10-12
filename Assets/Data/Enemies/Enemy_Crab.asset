@@ -27,5 +27,5 @@ MonoBehaviour:
   sightRange: 14
   color: {r: 0.95, g: 0.55, b: 0.1, a: 1}
   size: 1.7
-  sprite: {fileID: -8781757214100938709, guid: 01296e55af54754488090a2c087ae162, type: 3}
+  sprite: {fileID: 21300000, guid: 5a47f73466d64ae5a728492709e087a7, type: 3}
   spriteFacing: 90

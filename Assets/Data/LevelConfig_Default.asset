@@ -23,7 +23,7 @@ MonoBehaviour:
     openWallChance: 0.2
     minCoverPerLeaf: 1
     maxCoverPerLeaf: 3
-    coverClearance: 1
+    coverClearance: 2
     doorKeepClear: 2
     startExitClearRadius: 2
     baseEnemyCount: 4

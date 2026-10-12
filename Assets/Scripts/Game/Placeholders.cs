@@ -29,6 +29,7 @@ namespace CatTanks
             hp.ResetHp();
             go.AddComponent<PlayerTank>().turret = turret;
             go.AddComponent<AimPreview>();
+            go.AddComponent<TrackTrail>();
             return go;
         }
 
