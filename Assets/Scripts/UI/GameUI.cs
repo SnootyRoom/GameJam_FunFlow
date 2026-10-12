@@ -21,14 +21,8 @@ namespace CatTanks.UI
         public string exitBlockedText = "Squash all the bugs first!";
 
         GameUIView _ui;
-        PlayerUltimate _ult;
-        PlayerTank _tank;                    // для индикатора боезапаса
         System.Action _afterTutorial;
         bool _titleDone;
-
-        const string SoundPref = "sound_on";
-        const string TutorialSeenPref = "tutorial_seen";
-        const float SoundVolume = 0.7f;
 
         // ------------------------------------------------------------------ Жизненный цикл
 
@@ -46,7 +40,7 @@ namespace CatTanks.UI
             if (showMainMenu) flow.autoStart = false; // ждём кнопку «Play»
 
             UIFactory.EnsureEventSystem();
-            Sfx.MasterVolume = PlayerPrefs.GetInt(SoundPref, 1) == 1 ? SoundVolume : 0f;
+            GameSettings.Apply();
             if (uiPrefab != null) _ui = Instantiate(uiPrefab, transform);
             else
             {
@@ -61,9 +55,7 @@ namespace CatTanks.UI
             flow.OnLevelStarted += HandleLevelStarted;
             flow.OnLevelCompleted += HandleLevelCompleted;
             flow.OnPlayerKilled += HandlePlayerKilled;
-            flow.OnPlayerHpChanged += _ui.hud.SetHearts;
             flow.OnExitBlocked += HandleExitBlocked;
-            flow.OnEnemyCountChanged += _ui.hud.SetEnemies;
             if (_ui.tutorial != null) _ui.tutorial.Closed += HandleTutorialClosed;
             if (_ui.menu.title != null) _ui.menu.title.Finished += HandleTitleFinished;
         }
@@ -82,27 +74,8 @@ namespace CatTanks.UI
             flow.OnLevelStarted -= HandleLevelStarted;
             flow.OnLevelCompleted -= HandleLevelCompleted;
             flow.OnPlayerKilled -= HandlePlayerKilled;
-            flow.OnPlayerHpChanged -= _ui.hud.SetHearts;
             flow.OnExitBlocked -= HandleExitBlocked;
-            flow.OnEnemyCountChanged -= _ui.hud.SetEnemies;
-            BindUltimate(null);
-        }
-
-        void Update()
-        {
-            if (flow == null) return;
-            if (_ui.hud.gameObject.activeSelf)
-                _ui.hud.UpdateExitArrow(Camera.main, flow.Current != null ? flow.Current.Exit : null);
-            _ui.hud.UpdateCrosshair(GameInput.MouseScreen());
-            if (_ui.hud.gameObject.activeSelf)
-            {
-                if (_tank != null) _ui.hud.SetAmmo(true, _tank.AmmoLeft, _tank.AmmoMax, _tank.Reload01, _tank.CanFire);
-                else _ui.hud.SetAmmo(false, 0, 0, 1f, true);
-                bool minigun = _tank != null && _tank.minigunEnabled;
-                if (minigun) _ui.hud.SetMinigun(true, _tank.MinigunRounds, _tank.MinigunMagazine, _tank.MinigunReload01, _tank.MinigunReloading);
-                else _ui.hud.SetMinigun(false, 0, 0, 1f, false);
-                _ui.hud.SetStars(flow.Current?.Stars, flow.TotalStars);
-            }
+            if (_ui.hud != null) _ui.hud.Bind(flow, null); // виджеты отписываются от танка и уровня
         }
 
         // ------------------------------------------------------------------ Кнопки
@@ -142,7 +115,7 @@ namespace CatTanks.UI
         /// <summary>Play: при первом запуске сначала обучение, игра начнётся по GO / SKIP.</summary>
         void Play()
         {
-            if (_ui.tutorial != null && PlayerPrefs.GetInt(TutorialSeenPref, 0) == 0) OpenTutorial(flow.StartNewGame);
+            if (_ui.tutorial != null && !GameSettings.TutorialSeen) OpenTutorial(flow.StartNewGame);
             else flow.StartNewGame();
         }
 
@@ -158,7 +131,7 @@ namespace CatTanks.UI
 
         void HandleTutorialClosed()
         {
-            PlayerPrefs.SetInt(TutorialSeenPref, 1);
+            GameSettings.TutorialSeen = true;
             var after = _afterTutorial;
             _afterTutorial = null;
             HandleState(flow.State); // вернуть меню или паузу как было
@@ -183,15 +156,13 @@ namespace CatTanks.UI
 
         void ToggleSound()
         {
-            bool on = Sfx.MasterVolume <= 0.001f;
-            Sfx.MasterVolume = on ? SoundVolume : 0f;
-            PlayerPrefs.SetInt(SoundPref, on ? 1 : 0);
+            GameSettings.SoundOn = !GameSettings.SoundOn;
             RefreshSettingsLabels(Screen.fullScreen);
         }
 
         void RefreshSettingsLabels(bool fullscreen)
         {
-            bool sound = Sfx.MasterVolume > 0.001f;
+            bool sound = GameSettings.SoundOn;
             _ui.menu.SetFullscreenLabel(fullscreen);
             _ui.menu.SetSoundLabel(sound);
             _ui.pause.SetFullscreenLabel(fullscreen);
@@ -209,9 +180,7 @@ namespace CatTanks.UI
             if (s != GameState.Menu && s != GameState.Paused) HideTutorial(); // Esc на паузе — обучение закрывается вместе с ней
             _ui.hud.gameObject.SetActive(s != GameState.Menu);
             _ui.banner.gameObject.SetActive(s == GameState.LevelComplete || s == GameState.PlayerDead);
-            bool playing = s == GameState.Playing;
-            _ui.hud.SetCrosshairVisible(playing);
-            Cursor.visible = !playing; // в бою вместо курсора — прицел
+            Cursor.visible = s != GameState.Playing; // в бою вместо курсора — прицел (CrosshairWidget)
         }
 
         /// <summary>При запуске — стартовый экран, дальше всегда главная колонка (кнопки выезжают).</summary>
@@ -234,15 +203,8 @@ namespace CatTanks.UI
             if (flow.State == GameState.Menu) EnterMenu();
         }
 
-        void HandleLevelStarted(LevelContext ctx)
-        {
-            _ui.hud.SetLevel(ctx.LevelNumber);
-            _ui.hud.ResetStars();
-            _ui.hud.SetEnemies(ctx.AliveEnemyCount());
-            if (ctx.PlayerHealth != null) _ui.hud.SetHearts(ctx.PlayerHealth.Hp, ctx.PlayerHealth.maxHp);
-            BindUltimate(ctx.Player != null ? ctx.Player.GetComponent<PlayerUltimate>() : null);
-            _tank = ctx.Player != null ? ctx.Player.GetComponent<PlayerTank>() : null;
-        }
+        // HUD сам следит за танком, ультой, звёздами и т.д. — ему нужен только новый уровень
+        void HandleLevelStarted(LevelContext ctx) => _ui.hud.Bind(flow, ctx);
 
         void HandleLevelCompleted(LevelContext ctx)
         {
@@ -257,24 +219,6 @@ namespace CatTanks.UI
         }
         void HandlePlayerKilled(LevelContext ctx) => _ui.banner.ShowDeath();
         void HandleExitBlocked() => _ui.hud.ShowToast(exitBlockedText, 1.5f);
-
-        // ------------------------------------------------------------------ Ульта
-
-        /// <summary>Танк создаётся заново на каждом уровне — переподписываемся на его ульту.</summary>
-        void BindUltimate(PlayerUltimate ult)
-        {
-            if (_ult != null) _ult.Changed -= RefreshUltimate;
-            _ult = ult;
-            if (_ult != null) _ult.Changed += RefreshUltimate;
-            RefreshUltimate();
-        }
-
-        void RefreshUltimate()
-        {
-            if (_ui == null) return;
-            if (_ult == null) { _ui.hud.SetUltimate(false, 0, 0, 0f, false); return; }
-            _ui.hud.SetUltimate(true, _ult.Charges, _ult.settings.maxCharges, _ult.Progress01, _ult.CanActivate);
-        }
 
 #if UNITY_EDITOR
         // Пустые ссылки подставляем сами: префаб холста и тему из проекта.

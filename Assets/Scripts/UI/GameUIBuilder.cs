@@ -43,70 +43,112 @@ namespace CatTanks.UI
 
         // ------------------------------------------------------------------ HUD
 
+        // Каждый виджет живёт в своём контейнере на весь экран, который никогда не выключается:
+        // виджет прячет только свои картинки и продолжает следить за игрой (иначе выключенный не смог бы показаться снова).
         HudView BuildHud(Transform root)
         {
             var rt = UIFactory.Stretch(root, "Hud");
             var v = rt.gameObject.AddComponent<HudView>();
 
-            v.hearts = UIFactory.Rect(rt, "Hearts", new Vector2(0, 1), new Vector2(32, -28), new Vector2(400, 56));
-            var row = v.hearts.gameObject.AddComponent<HorizontalLayoutGroup>();
-            row.spacing = 10;
-            row.childControlWidth = row.childControlHeight = false;
-            row.childForceExpandWidth = row.childForceExpandHeight = false;
-            var heart = UIFactory.Rect(v.hearts, "HeartTemplate", new Vector2(0, 0.5f), Vector2.zero, new Vector2(48, 48));
-            v.heartTemplate = UIFactory.Image(heart, Or(t.heartFull, Or(t.circle, Prims.Circle)), Color.white);
-            heart.gameObject.SetActive(false);
-            v.heartFull = t.heartFull;
-            v.heartEmpty = t.heartEmpty;
-            v.heartColor = t.heartColor;
+            BuildHearts(rt);
+            BuildLevelInfo(rt);
+            BuildLiveStars(rt);
+            BuildExitArrow(rt);
+            BuildUltWidget(rt);
+            BuildAmmoWidget(rt);
+            BuildMinigunWidget(rt);
 
-            v.level = UIFactory.Text(UIFactory.Rect(rt, "Level", new Vector2(0.5f, 1), new Vector2(0, -24), new Vector2(400, 56)),
-                                     _font, "Level 1", 32, TextAnchor.MiddleCenter, t.textColor);
-            v.enemies = UIFactory.Text(UIFactory.Rect(rt, "Enemies", new Vector2(1, 1), new Vector2(-32, -24), new Vector2(400, 56)),
-                                       _font, "Enemies: 0", 32, TextAnchor.MiddleRight, t.textColor);
             v.toast = UIFactory.Text(UIFactory.Rect(rt, "Toast", new Vector2(0.5f, 1), new Vector2(0, -150), new Vector2(1200, 60)),
                                      _font, "", 24, TextAnchor.MiddleCenter, t.accent);
             v.toast.gameObject.SetActive(false);
 
-            v.exitArrow = UIFactory.Rect(rt, "ExitArrow", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(56, 56));
-            v.exitArrow.pivot = new Vector2(0.5f, 0.5f);
-            UIFactory.Image(v.exitArrow, ExitArrowSprite(), ExitArrowColor());
-            v.exitArrow.gameObject.SetActive(false);
-
-            BuildLiveStars(rt, v);
-            BuildUltWidget(rt, v);
-            BuildAmmoWidget(rt, v);
-            BuildMinigunWidget(rt, v);
-
-            // прицел — последним, поверх остального HUD
-            v.crosshair = UIFactory.Rect(rt, "Crosshair", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(36, 36));
-            v.crosshair.pivot = new Vector2(0.5f, 0.5f);
-            UIFactory.Image(v.crosshair, Or(t.crosshair, Or(t.ring, Prims.Ring)), t.crosshair != null ? Color.white : t.accent);
+            BuildCrosshair(rt); // последним — поверх остального HUD
             return v;
         }
 
-        /// <summary>Ульта «Орех» в левом нижнем углу: иконка, клавиша, квадратики-заряды и полоска до следующего заряда.</summary>
-        void BuildUltWidget(RectTransform hud, HudView v)
+        static T Widget<T>(RectTransform hud, string name) where T : Component
+            => UIFactory.Stretch(hud, name).gameObject.AddComponent<T>();
+
+        void BuildHearts(RectTransform hud)
         {
-            var root = UIFactory.Rect(hud, "Ultimate", Vector2.zero, new Vector2(32, 32), new Vector2(280, 96));
-            v.ultRoot = root;
+            var w = Widget<HeartsWidget>(hud, "HeartsWidget");
+            w.row = UIFactory.Rect(w.transform, "Hearts", new Vector2(0, 1), new Vector2(32, -28), new Vector2(400, 56));
+            var row = w.row.gameObject.AddComponent<HorizontalLayoutGroup>();
+            row.spacing = 10;
+            row.childControlWidth = row.childControlHeight = false;
+            row.childForceExpandWidth = row.childForceExpandHeight = false;
+            var heart = UIFactory.Rect(w.row, "HeartTemplate", new Vector2(0, 0.5f), Vector2.zero, new Vector2(48, 48));
+            w.heartTemplate = UIFactory.Image(heart, Or(t.heartFull, Or(t.circle, Prims.Circle)), Color.white);
+            heart.gameObject.SetActive(false);
+            w.heartFull = t.heartFull;
+            w.heartEmpty = t.heartEmpty;
+            w.heartColor = t.heartColor;
+        }
+
+        void BuildLevelInfo(RectTransform hud)
+        {
+            var w = Widget<LevelInfoWidget>(hud, "LevelInfoWidget");
+            w.level = UIFactory.Text(UIFactory.Rect(w.transform, "Level", new Vector2(0.5f, 1), new Vector2(0, -24), new Vector2(400, 56)),
+                                     _font, "Level 1", 32, TextAnchor.MiddleCenter, t.textColor);
+            w.enemies = UIFactory.Text(UIFactory.Rect(w.transform, "Enemies", new Vector2(1, 1), new Vector2(-32, -24), new Vector2(400, 56)),
+                                       _font, "Enemies: 0", 32, TextAnchor.MiddleRight, t.textColor);
+        }
+
+        /// <summary>Звёзды уровня под номером уровня и счёт звёзд за забег под счётчиком врагов.</summary>
+        void BuildLiveStars(RectTransform hud)
+        {
+            const int count = 3;
+            const float size = 39f, step = 50f; // звезда 13 px → ровно ×3
+            var w = Widget<StarsWidget>(hud, "StarsWidget");
+            w.stars = new Image[count];
+            for (int i = 0; i < count; i++)
+            {
+                var star = UIFactory.Rect(w.transform, "Star" + i, new Vector2(0.5f, 1), new Vector2((i - (count - 1) / 2f) * step, -92), new Vector2(size, size));
+                star.pivot = new Vector2(0.5f, 0.5f);
+                w.stars[i] = UIFactory.Image(star, Or(t.starIcon, UIFactory.PixelStarSprite()), t.starPossible);
+                w.stars[i].preserveAspect = true;
+                star.gameObject.SetActive(false);
+            }
+            w.starOn = t.starOn;
+            w.starPossible = t.starPossible;
+            w.starOff = t.starOff;
+            w.total = UIFactory.Text(UIFactory.Rect(w.transform, "Total", new Vector2(1, 1), new Vector2(-32, -80), new Vector2(400, 48)),
+                                     _font, "Stars: 0", 24, TextAnchor.MiddleRight, t.starOn);
+            UIFactory.HardShadow(w.total, 3, new Color(0, 0, 0, 0.85f));
+        }
+
+        void BuildExitArrow(RectTransform hud)
+        {
+            var w = Widget<ExitArrowWidget>(hud, "ExitArrowWidget");
+            w.arrow = UIFactory.Rect(w.transform, "ExitArrow", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(56, 56));
+            w.arrow.pivot = new Vector2(0.5f, 0.5f);
+            UIFactory.Image(w.arrow, ExitArrowSprite(), ExitArrowColor());
+            w.arrow.gameObject.SetActive(false);
+        }
+
+        /// <summary>Ульта «Орех» в левом нижнем углу: иконка, клавиша, квадратики-заряды и полоска до следующего заряда.</summary>
+        void BuildUltWidget(RectTransform hud)
+        {
+            var w = Widget<UltWidget>(hud, "UltWidget");
+            var root = UIFactory.Rect(w.transform, "Ultimate", Vector2.zero, new Vector2(32, 32), new Vector2(280, 96));
+            w.root = root;
 
             var icon = UIFactory.Rect(root, "Icon", Vector2.zero, Vector2.zero, new Vector2(96, 96));
             icon.pivot = new Vector2(0.5f, 0.5f);
             icon.anchoredPosition = new Vector2(48, 48); // масштаб «дыхания» — от центра
-            v.ultIcon = UIFactory.Image(icon, Or(t.ultIcon, Or(t.circle, Prims.Circle)), Color.white);
-            v.ultIcon.preserveAspect = true;
+            w.icon = UIFactory.Image(icon, Or(t.ultIcon, Or(t.circle, Prims.Circle)), Color.white);
+            w.icon.preserveAspect = true;
 
-            v.ultKey = UIFactory.Text(UIFactory.Rect(root, "Key", Vector2.zero, new Vector2(70, -2), new Vector2(40, 32)),
-                                      _font, "Q", 24, TextAnchor.LowerRight, t.textColor);
-            UIFactory.HardShadow(v.ultKey, 3, new Color(0, 0, 0, 0.9f));
+            w.key = UIFactory.Text(UIFactory.Rect(root, "Key", Vector2.zero, new Vector2(70, -2), new Vector2(40, 32)),
+                                   _font, "Q", 24, TextAnchor.LowerRight, t.textColor);
+            UIFactory.HardShadow(w.key, 3, new Color(0, 0, 0, 0.9f));
 
-            v.ultPipOn = t.accent;
-            v.ultPips = new Image[3];
-            for (int i = 0; i < v.ultPips.Length; i++)
+            w.pipOn = t.accent;
+            w.pips = new Image[3];
+            for (int i = 0; i < w.pips.Length; i++)
             {
                 var pip = UIFactory.Rect(root, "Charge" + i, Vector2.zero, new Vector2(112 + i * 30, 48), new Vector2(22, 22));
-                v.ultPips[i] = UIFactory.Image(pip, null, v.ultPipOff);
+                w.pips[i] = UIFactory.Image(pip, null, w.pipOff);
                 var outline = pip.gameObject.AddComponent<Outline>(); // пиксельная рамка
                 outline.effectColor = new Color(0, 0, 0, 0.85f);
                 outline.effectDistance = new Vector2(3, -3);
@@ -117,46 +159,25 @@ namespace CatTanks.UI
             var fill = UIFactory.Stretch(bar, "Fill");
             fill.anchorMax = new Vector2(0f, 1f);
             UIFactory.Image(fill, null, t.accent);
-            v.ultBarFill = fill;
-            root.gameObject.SetActive(false); // покажет GameUI, если у танка есть ульта
-        }
-
-        /// <summary>Звёзды уровня под номером уровня и счёт звёзд за забег под счётчиком врагов.</summary>
-        void BuildLiveStars(RectTransform hud, HudView v)
-        {
-            const int count = 3;
-            const float size = 39f, step = 50f; // звезда 13 px → ровно ×3
-            v.liveStars = new Image[count];
-            for (int i = 0; i < count; i++)
-            {
-                var star = UIFactory.Rect(hud, "LiveStar" + i, new Vector2(0.5f, 1), new Vector2((i - (count - 1) / 2f) * step, -92), new Vector2(size, size));
-                star.pivot = new Vector2(0.5f, 0.5f);
-                v.liveStars[i] = UIFactory.Image(star, Or(t.starIcon, UIFactory.PixelStarSprite()), t.starPossible);
-                v.liveStars[i].preserveAspect = true;
-                star.gameObject.SetActive(false);
-            }
-            v.starOn = t.starOn;
-            v.starPossible = t.starPossible;
-            v.starOff = t.starOff;
-            v.starsTotal = UIFactory.Text(UIFactory.Rect(hud, "StarsTotal", new Vector2(1, 1), new Vector2(-32, -80), new Vector2(400, 48)),
-                                          _font, "Stars: 0", 24, TextAnchor.MiddleRight, t.starOn);
-            UIFactory.HardShadow(v.starsTotal, 3, new Color(0, 0, 0, 0.85f));
+            w.barFill = fill;
+            root.gameObject.SetActive(false); // покажется, если у танка есть ульта
         }
 
         /// <summary>Боезапас над ультой: иконка на каждый снаряд в полёте и полоска перезарядки под ними.</summary>
-        void BuildAmmoWidget(RectTransform hud, HudView v)
+        void BuildAmmoWidget(RectTransform hud)
         {
-            const int max = 8;                // запас иконок; лишние прячет HudView по лимиту танка
+            const int max = 8;                  // запас иконок; лишние прячет виджет по лимиту танка
             const float icon = 48f, step = 54f; // картинка 16 px → ровно ×3
-            var root = UIFactory.Rect(hud, "Ammo", Vector2.zero, new Vector2(32, 144), new Vector2(max * step, icon + 22));
-            v.ammoRoot = root;
-            v.ammoPips = new Image[max];
+            var w = Widget<AmmoWidget>(hud, "AmmoWidget");
+            var root = UIFactory.Rect(w.transform, "Ammo", Vector2.zero, new Vector2(32, 144), new Vector2(max * step, icon + 22));
+            w.root = root;
+            w.pips = new Image[max];
             for (int i = 0; i < max; i++)
             {
                 var pip = UIFactory.Rect(root, "Shell" + i, Vector2.zero, new Vector2(i * step + icon / 2f, 22 + icon / 2f), new Vector2(icon, icon));
                 pip.pivot = new Vector2(0.5f, 0.5f); // «подпрыгивает» от центра
-                v.ammoPips[i] = UIFactory.Image(pip, Or(t.ammoIcon, Or(t.circle, Prims.Circle)), Color.white);
-                v.ammoPips[i].preserveAspect = true;
+                w.pips[i] = UIFactory.Image(pip, Or(t.ammoIcon, Or(t.circle, Prims.Circle)), Color.white);
+                w.pips[i].preserveAspect = true;
                 var shadow = pip.gameObject.AddComponent<Shadow>(); // жёсткая тень — читается на любом полу
                 shadow.effectColor = new Color(0, 0, 0, 0.6f);
                 shadow.effectDistance = new Vector2(3, -3);
@@ -167,25 +188,25 @@ namespace CatTanks.UI
             var fill = UIFactory.Stretch(bar, "Fill");
             fill.offsetMin = new Vector2(2, 2);
             fill.offsetMax = new Vector2(-2, -2);
-            fill.anchorMax = new Vector2(1f, 1f);
             UIFactory.Image(fill, null, Color.white);
-            v.ammoReloadFill = fill;
-            v.reloadColor = t.accent;
-            root.gameObject.SetActive(false); // покажет GameUI, если у игрока PlayerTank
+            w.reloadFill = fill;
+            w.reloadColor = t.accent;
+            root.gameObject.SetActive(false); // покажется, если у игрока PlayerTank
         }
 
         /// <summary>Магазин пулемёта над боезапасом: маленькие патроны и полоска перезарядки справа.</summary>
-        void BuildMinigunWidget(RectTransform hud, HudView v)
+        void BuildMinigunWidget(RectTransform hud)
         {
             const int max = 8;
-            const float w = 15f, h = 30f, step = 21f;
-            var root = UIFactory.Rect(hud, "Minigun", Vector2.zero, new Vector2(32, 226), new Vector2(max * step + 160, h));
-            v.minigunRoot = root;
-            v.minigunPips = new Image[max];
+            const float pw = 15f, ph = 30f, step = 21f;
+            var w = Widget<MinigunWidget>(hud, "MinigunWidget");
+            var root = UIFactory.Rect(w.transform, "Minigun", Vector2.zero, new Vector2(32, 226), new Vector2(max * step + 160, ph));
+            w.root = root;
+            w.pips = new Image[max];
             for (int i = 0; i < max; i++)
             {
-                var pip = UIFactory.Rect(root, "Round" + i, Vector2.zero, new Vector2(i * step, 0), new Vector2(w, h));
-                v.minigunPips[i] = UIFactory.Image(pip, null, Color.white);
+                var pip = UIFactory.Rect(root, "Round" + i, Vector2.zero, new Vector2(i * step, 0), new Vector2(pw, ph));
+                w.pips[i] = UIFactory.Image(pip, null, Color.white);
                 var outline = pip.gameObject.AddComponent<Outline>(); // пиксельная рамка
                 outline.effectColor = new Color(0, 0, 0, 0.85f);
                 outline.effectDistance = new Vector2(3, -3);
@@ -196,10 +217,19 @@ namespace CatTanks.UI
             var fill = UIFactory.Stretch(bar, "Fill");
             fill.offsetMin = new Vector2(2, 2);
             fill.offsetMax = new Vector2(-2, -2);
-            UIFactory.Image(fill, null, v.minigunOn);
-            v.minigunReloadFill = fill;
+            UIFactory.Image(fill, null, w.roundOn);
+            w.reloadFill = fill;
             bar.gameObject.SetActive(false);
             root.gameObject.SetActive(false);
+        }
+
+        void BuildCrosshair(RectTransform hud)
+        {
+            var w = Widget<CrosshairWidget>(hud, "CrosshairWidget");
+            w.crosshair = UIFactory.Rect(w.transform, "Crosshair", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(36, 36));
+            w.crosshair.pivot = new Vector2(0.5f, 0.5f);
+            UIFactory.Image(w.crosshair, Or(t.crosshair, Or(t.ring, Prims.Ring)), t.crosshair != null ? Color.white : t.accent);
+            w.crosshair.gameObject.SetActive(false);
         }
 
         // ------------------------------------------------------------------ Баннер
