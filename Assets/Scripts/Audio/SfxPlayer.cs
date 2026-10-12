@@ -29,6 +29,7 @@ namespace CatTanks
             EnemyShooter.ShotTelegraphed += OnShotTelegraphed;
             PlayerTank.MinigunReloadStarted += OnReloadStarted;
             PlayerTank.MinigunReloaded += OnReloaded;
+            BannerView.StarRevealed += OnStarRevealed;
             _flow.OnStateChanged += OnStateChanged;
             ApplyMusic(_flow.State);
             _flow.OnLevelStarted += OnLevelStarted;
@@ -55,6 +56,7 @@ namespace CatTanks
             EnemyShooter.ShotTelegraphed -= OnShotTelegraphed;
             PlayerTank.MinigunReloadStarted -= OnReloadStarted;
             PlayerTank.MinigunReloaded -= OnReloaded;
+            BannerView.StarRevealed -= OnStarRevealed;
             _flow.OnStateChanged -= OnStateChanged;
             _flow.OnLevelStarted -= OnLevelStarted;
             _flow.OnLevelCompleted -= OnLevelCompleted;
@@ -123,6 +125,12 @@ namespace CatTanks
         void OnShotTelegraphed(Vector2 at) => Sfx.PlayAt(SfxId.EnemyCharge, at, 0.55f, 0.08f);
         void OnReloadStarted() => Sfx.Play(SfxId.ReloadStart, 0.5f, 0.05f);
         void OnReloaded() => Sfx.Play(SfxId.ReloadEnd, 0.6f, 0.03f);
+        // звёзды: каждая следующая — выше; не заработанная — глухой щелчок
+        void OnStarRevealed(int index, bool earned)
+        {
+            if (earned) Sfx.Play(SfxId.Coin, 0.9f, 0f, 1f + 0.15f * index);
+            else Sfx.Play(SfxId.Empty, 0.5f, 0f, 0.8f);
+        }
 
         // пауза: звук только на переходах игра ↔ пауза (не при уходе в меню или смерти)
         GameState _lastState = GameState.Menu;

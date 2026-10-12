@@ -184,6 +184,42 @@ namespace CatTanks.UI
             }
         }
 
+        static Sprite _pixelStar;
+
+        /// <summary>Пиксельная звезда 13×13 с тёмным контуром: заливка белая (красится цветом Image), контур остаётся тёмным.</summary>
+        public static Sprite PixelStarSprite()
+        {
+            if (_pixelStar != null) return _pixelStar;
+            string[] rows =
+            {
+                "......#......",
+                ".....#o#.....",
+                ".....#o#.....",
+                "....#ooo#....",
+                "#####ooo#####",
+                "#ooooooooooo#",
+                ".#ooooooooo#.",
+                "..#ooooooo#..",
+                "..#ooooooo#..",
+                ".#ooo###ooo#.",
+                ".#oo#...#oo#.",
+                "#oo#.....#oo#",
+                "###.......###",
+            };
+            int n = rows.Length;
+            var px = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    char c = rows[n - 1 - y][x]; // строки сверху вниз, текстура снизу вверх
+                    px[y * n + x] = c == 'o' ? new Color32(255, 255, 255, 255)
+                                  : c == '#' ? new Color32(42, 34, 51, 255)   // контур — цвет «чернил» UI
+                                  : new Color32(0, 0, 0, 0);
+                }
+            _pixelStar = MakePixelSprite("PixelStar", n, n, px, Vector4.zero);
+            return _pixelStar;
+        }
+
         static Sprite MakePixelSprite(string name, int w, int h, Color32[] px, Vector4 border)
         {
             var tex = new Texture2D(w, h, TextureFormat.RGBA32, false)

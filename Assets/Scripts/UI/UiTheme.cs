@@ -24,6 +24,7 @@ namespace CatTanks.UI
         public Sprite panelSprite;            // полоса баннера «Level Complete»
         public Sprite ultIcon;                // иконка ульты в HUD (Assets/Art/Ult/walnut)
         public Sprite ammoIcon;               // иконка снаряда в HUD (пусто = подставится Assets/Art/Characters/snarad)
+        public Sprite starIcon;               // звезда (пусто = пиксельная из Assets/Art/UI/Generated или Assets/Art/UI/star)
 
         [Header("Кнопки главного меню (картинки с готовым текстом; 456×120; пусто = бумажная кнопка с текстом)")]
         public Sprite startButton;
@@ -64,5 +65,9 @@ namespace CatTanks.UI
         public Color textColor = Color.white;
         public Color dimColor = new Color(0f, 0f, 0f, 0.6f);
         public Color heartColor = new Color(0.95f, 0.3f, 0.35f);
+        [Header("Звёзды")]
+        public Color starOn = new Color32(255, 196, 56, 255);       // заработана
+        public Color starPossible = new Color(1f, 1f, 1f, 0.6f);    // ещё можно получить
+        public Color starOff = new Color(0.35f, 0.3f, 0.4f, 0.75f); // потеряна
     }
 }

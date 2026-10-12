@@ -13,5 +13,13 @@ namespace CatTanks
         [Header("Сложность")]
         [Range(1, 5)] public int startDifficulty = 1;
         [Range(1, 5)] public int maxDifficulty = 5;
+
+        [Header("Звёзды за уровень")]
+        [Tooltip("Условия звёзд по порядку. Первая обычно ReachExit — она даётся за само прохождение")]
+        public StarRule[] stars = { StarRule.ReachExit, StarRule.KillAll, StarRule.NoDamage };
+        [Tooltip("UnderPar: секунд на клетку главного пути от старта до рыбы")]
+        public float parSecondsPerCell = 0.7f;
+        [Tooltip("UnderPar: запас сверху, секунды")]
+        public float parBonusSeconds = 10f;
     }
 }

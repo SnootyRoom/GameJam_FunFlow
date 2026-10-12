@@ -64,7 +64,7 @@ namespace CatTanks.UI
                                      _font, "Level 1", 32, TextAnchor.MiddleCenter, t.textColor);
             v.enemies = UIFactory.Text(UIFactory.Rect(rt, "Enemies", new Vector2(1, 1), new Vector2(-32, -24), new Vector2(400, 56)),
                                        _font, "Enemies: 0", 32, TextAnchor.MiddleRight, t.textColor);
-            v.toast = UIFactory.Text(UIFactory.Rect(rt, "Toast", new Vector2(0.5f, 1), new Vector2(0, -110), new Vector2(1200, 60)),
+            v.toast = UIFactory.Text(UIFactory.Rect(rt, "Toast", new Vector2(0.5f, 1), new Vector2(0, -150), new Vector2(1200, 60)),
                                      _font, "", 24, TextAnchor.MiddleCenter, t.accent);
             v.toast.gameObject.SetActive(false);
 
@@ -73,6 +73,7 @@ namespace CatTanks.UI
             UIFactory.Image(v.exitArrow, ExitArrowSprite(), ExitArrowColor());
             v.exitArrow.gameObject.SetActive(false);
 
+            BuildLiveStars(rt, v);
             BuildUltWidget(rt, v);
             BuildAmmoWidget(rt, v);
             BuildMinigunWidget(rt, v);
@@ -118,6 +119,28 @@ namespace CatTanks.UI
             UIFactory.Image(fill, null, t.accent);
             v.ultBarFill = fill;
             root.gameObject.SetActive(false); // покажет GameUI, если у танка есть ульта
+        }
+
+        /// <summary>Звёзды уровня под номером уровня и счёт звёзд за забег под счётчиком врагов.</summary>
+        void BuildLiveStars(RectTransform hud, HudView v)
+        {
+            const int count = 3;
+            const float size = 39f, step = 50f; // звезда 13 px → ровно ×3
+            v.liveStars = new Image[count];
+            for (int i = 0; i < count; i++)
+            {
+                var star = UIFactory.Rect(hud, "LiveStar" + i, new Vector2(0.5f, 1), new Vector2((i - (count - 1) / 2f) * step, -92), new Vector2(size, size));
+                star.pivot = new Vector2(0.5f, 0.5f);
+                v.liveStars[i] = UIFactory.Image(star, Or(t.starIcon, UIFactory.PixelStarSprite()), t.starPossible);
+                v.liveStars[i].preserveAspect = true;
+                star.gameObject.SetActive(false);
+            }
+            v.starOn = t.starOn;
+            v.starPossible = t.starPossible;
+            v.starOff = t.starOff;
+            v.starsTotal = UIFactory.Text(UIFactory.Rect(hud, "StarsTotal", new Vector2(1, 1), new Vector2(-32, -80), new Vector2(400, 48)),
+                                          _font, "Stars: 0", 24, TextAnchor.MiddleRight, t.starOn);
+            UIFactory.HardShadow(v.starsTotal, 3, new Color(0, 0, 0, 0.85f));
         }
 
         /// <summary>Боезапас над ультой: иконка на каждый снаряд в полёте и полоска перезарядки под ними.</summary>
@@ -185,17 +208,45 @@ namespace CatTanks.UI
         {
             var rt = UIFactory.Stretch(root, "Banner");
             var v = rt.gameObject.AddComponent<BannerView>();
-            var strip = UIFactory.Rect(rt, "Strip", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(2200, 240));
+            var strip = UIFactory.Rect(rt, "Strip", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(2200, 420));
             strip.pivot = new Vector2(0.5f, 0.5f);
             UIFactory.Image(strip, t.panelSprite, t.panelSprite != null ? Color.white : t.dimColor);
-            v.title = UIFactory.Text(UIFactory.Rect(strip, "Title", new Vector2(0.5f, 0.5f), new Vector2(0, 30), new Vector2(1600, 100)),
+            v.title = UIFactory.Text(UIFactory.Rect(strip, "Title", new Vector2(0.5f, 0.5f), new Vector2(0, 135), new Vector2(1600, 100)),
                                      _font, "", 64, TextAnchor.MiddleCenter, t.accent);
             v.title.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-            v.subtitle = UIFactory.Text(UIFactory.Rect(strip, "Subtitle", new Vector2(0.5f, 0.5f), new Vector2(0, -50), new Vector2(1600, 60)),
+            v.subtitle = UIFactory.Text(UIFactory.Rect(strip, "Subtitle", new Vector2(0.5f, 0.5f), new Vector2(0, 60), new Vector2(1600, 60)),
                                         _font, "", 32, TextAnchor.MiddleCenter, t.textColor);
             v.subtitle.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            BannerStars(strip, v);
             rt.gameObject.SetActive(false);
             return v;
+        }
+
+        /// <summary>Три звезды под заголовком и подпись под каждой (за что). Вылетают по очереди — анимирует BannerView.</summary>
+        void BannerStars(RectTransform strip, BannerView v)
+        {
+            const int count = 3;
+            const float size = 104f, step = 260f; // звезда 13 px → ровно ×8
+            var row = UIFactory.Rect(strip, "Stars", new Vector2(0.5f, 0.5f), new Vector2(0, -75), new Vector2(count * step, 200));
+            row.pivot = new Vector2(0.5f, 0.5f);
+            v.starsRow = row;
+            v.stars = new Image[count];
+            v.starLabels = new Text[count];
+            v.starOn = t.starOn;
+            v.starOff = t.starOff;
+            for (int i = 0; i < count; i++)
+            {
+                float x = (i - (count - 1) / 2f) * step;
+                var star = UIFactory.Rect(row, "Star" + i, new Vector2(0.5f, 0.5f), new Vector2(x, 25), new Vector2(size, size));
+                star.pivot = new Vector2(0.5f, 0.5f);
+                v.stars[i] = UIFactory.Image(star, Or(t.starIcon, UIFactory.PixelStarSprite()), t.starOn);
+                v.stars[i].preserveAspect = true;
+                var label = UIFactory.Rect(row, "Label" + i, new Vector2(0.5f, 0.5f), new Vector2(x, -65), new Vector2(step, 40));
+                label.pivot = new Vector2(0.5f, 0.5f);
+                v.starLabels[i] = UIFactory.Text(label, _font, "", 24, TextAnchor.MiddleCenter, Color.white);
+                UIFactory.HardShadow(v.starLabels[i], 3, new Color(0, 0, 0, 0.85f));
+            }
+            row.gameObject.SetActive(false);
         }
 
         // ------------------------------------------------------------------ Пауза

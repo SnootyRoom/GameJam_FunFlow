@@ -25,6 +25,7 @@ MonoBehaviour:
   panelSprite: {fileID: 0}
   ultIcon: {fileID: 21300000, guid: 89df69d1d22b4116bd5bd0f2a15fd1b4, type: 3}
   ammoIcon: {fileID: 251537664351223349, guid: 44e4112211a35a746a3339ee342faec1, type: 3}
+  starIcon: {fileID: 21300000, guid: 2ad7024618573894c90536b233ee8817, type: 3}
   startButton: {fileID: -6581494120170603413, guid: a762cbb6e5691bc4bac8936ced931e86, type: 3}
   tutorialButton: {fileID: -1793353510728061614, guid: 13cf438ac755ee042b04b9cae917ad78, type: 3}
   settingsButton: {fileID: 7540231731931389959, guid: 7fb8db127de679c49927d7ac5decbff3, type: 3}
@@ -54,3 +55,6 @@ MonoBehaviour:
   textColor: {r: 1, g: 1, b: 1, a: 1}
   dimColor: {r: 0.11698109, g: 0.107490174, b: 0.107490174, a: 0.6}
   heartColor: {r: 0.95, g: 0.3, b: 0.35, a: 1}
+  starOn: {r: 1, g: 0.76862746, b: 0.21960784, a: 1}
+  starPossible: {r: 1, g: 1, b: 1, a: 0.6}
+  starOff: {r: 0.35, g: 0.3, b: 0.4, a: 0.75}

@@ -30,12 +30,16 @@ namespace CatTanks
         public bool bulletsCollide = true;
         public float levelCompleteDelay = 1.5f;      // сколько показывать «Уровень пройден»
         public float restartDelay = 1.5f;            // через сколько перезапуск после смерти
+        [Tooltip("Сколько дольше висит «Уровень пройден», чтобы звёзды успели вылететь")]
+        public float starsShowTime = 1.2f;
         public bool debugKeys = true;                // R — новый уровень, N — пропустить
 
         public GameState State { get; private set; } = GameState.Menu;
         public LevelContext Current { get; private set; }
         public int LevelNumber { get; private set; }
         public int Difficulty { get; private set; }
+        /// <summary>Звёзд собрано за текущий забег (с нажатия Play).</summary>
+        public int TotalStars { get; private set; }
 
         // ----- события (подписывается UI, звук, эффекты) -----
         public event Action<GameState> OnStateChanged;
@@ -113,6 +117,7 @@ namespace CatTanks
         public void StartNewGame()
         {
             LevelNumber = 1;
+            TotalStars = 0;
             Difficulty = config.startDifficulty;
             LoadLevel(Settings.seed); // фиксированный сид из конфига (0 = случайный)
         }
@@ -163,10 +168,12 @@ namespace CatTanks
                 OnExitBlocked?.Invoke();
                 return;
             }
+            Current.Stars?.Complete();
+            TotalStars += Current.Stars != null ? Current.Stars.EarnedCount : 0;
             SetState(GameState.LevelComplete);
             GameTime.Set(this, 0f); // замираем, пока висит надпись
             OnLevelCompleted?.Invoke(Current);
-            StartCoroutine(AfterRealtime(levelCompleteDelay, NextLevel));
+            StartCoroutine(AfterRealtime(levelCompleteDelay + (Current.Stars != null ? starsShowTime : 0f), NextLevel));
         }
 
         // ------------------------------------------------------------------ Загрузка уровня
@@ -194,6 +201,8 @@ namespace CatTanks
             };
             Current = ctx;
             _spawner.SpawnAll(ctx);
+            int pathCells = data.mainPath != null ? data.mainPath.Count : 0;
+            ctx.Stars = new LevelStars(ctx, config.stars, pathCells * config.parSecondsPerCell + config.parBonusSeconds);
 
             // ctx живёт ровно один уровень, поэтому от его событий отписываться не нужно
             ctx.EnemyKilled += e => OnEnemyKilled?.Invoke(e);

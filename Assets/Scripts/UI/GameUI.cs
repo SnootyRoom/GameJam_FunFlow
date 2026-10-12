@@ -101,6 +101,7 @@ namespace CatTanks.UI
                 bool minigun = _tank != null && _tank.minigunEnabled;
                 if (minigun) _ui.hud.SetMinigun(true, _tank.MinigunRounds, _tank.MinigunMagazine, _tank.MinigunReload01, _tank.MinigunReloading);
                 else _ui.hud.SetMinigun(false, 0, 0, 1f, false);
+                _ui.hud.SetStars(flow.Current?.Stars, flow.TotalStars);
             }
         }
 
@@ -236,13 +237,24 @@ namespace CatTanks.UI
         void HandleLevelStarted(LevelContext ctx)
         {
             _ui.hud.SetLevel(ctx.LevelNumber);
+            _ui.hud.ResetStars();
             _ui.hud.SetEnemies(ctx.AliveEnemyCount());
             if (ctx.PlayerHealth != null) _ui.hud.SetHearts(ctx.PlayerHealth.Hp, ctx.PlayerHealth.maxHp);
             BindUltimate(ctx.Player != null ? ctx.Player.GetComponent<PlayerUltimate>() : null);
             _tank = ctx.Player != null ? ctx.Player.GetComponent<PlayerTank>() : null;
         }
 
-        void HandleLevelCompleted(LevelContext ctx) => _ui.banner.ShowLevelComplete(ctx.LevelNumber);
+        void HandleLevelCompleted(LevelContext ctx)
+        {
+            var stars = ctx.Stars;
+            string[] labels = null;
+            if (stars != null)
+            {
+                labels = new string[stars.Rules.Length];
+                for (int i = 0; i < labels.Length; i++) labels[i] = LevelStars.Label(stars.Rules[i]);
+            }
+            _ui.banner.ShowLevelComplete(ctx.LevelNumber, stars?.Result, labels);
+        }
         void HandlePlayerKilled(LevelContext ctx) => _ui.banner.ShowDeath();
         void HandleExitBlocked() => _ui.hud.ShowToast(exitBlockedText, 1.5f);
 

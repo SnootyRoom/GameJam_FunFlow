@@ -47,6 +47,14 @@ namespace CatTanks.UI
         [Range(0f, 1f)] public float crosshairNotReadyAlpha = 0.35f;
         [Range(0.3f, 1f)] public float crosshairNotReadyScale = 0.75f;
 
+        [Header("Звёзды уровня")]
+        public Image[] liveStars;             // состояние звёзд прямо сейчас
+        public Text starsTotal;               // звёзд за забег
+        public string starsTotalFormat = "Stars: {0}";
+        public Color starOn = new Color32(255, 196, 56, 255);
+        public Color starPossible = new Color(1f, 1f, 1f, 0.6f);
+        public Color starOff = new Color(0.35f, 0.3f, 0.4f, 0.75f);
+
         [Header("Магазин пулемёта")]
         public RectTransform minigunRoot;
         public Image[] minigunPips;           // патрон на каждый выстрел магазина
@@ -145,6 +153,54 @@ namespace CatTanks.UI
             }
         }
 
+        StarState[] _starStates;
+        float[] _starAnim;                    // >0 — звезда «прыгает» (заработана), <0 — дрожит (потеряна)
+        int _shownTotal = -1;
+
+        /// <summary>Звёзды уровня (null — спрятать) и счёт за забег. Смена состояния звезды анимируется.</summary>
+        public void SetStars(LevelStars stars, int total)
+        {
+            if (starsTotal != null && total != _shownTotal) { _shownTotal = total; starsTotal.text = string.Format(starsTotalFormat, total); }
+            if (liveStars == null) return;
+            if (_starStates == null || _starStates.Length != liveStars.Length)
+            {
+                _starStates = new StarState[liveStars.Length];
+                _starAnim = new float[liveStars.Length];
+            }
+            for (int i = 0; i < liveStars.Length; i++)
+            {
+                bool used = stars != null && i < stars.Rules.Length;
+                liveStars[i].gameObject.SetActive(used);
+                if (!used) continue;
+                var s = stars.State(i);
+                if (s != _starStates[i]) _starAnim[i] = s == StarState.Earned ? 1f : s == StarState.Lost ? -1f : 0f;
+                _starStates[i] = s;
+                liveStars[i].color = s == StarState.Earned ? starOn : s == StarState.Lost ? starOff : starPossible;
+            }
+        }
+
+        /// <summary>Новый уровень — без анимации смены состояний.</summary>
+        public void ResetStars()
+        {
+            _starStates = null;
+            if (liveStars != null) foreach (var s in liveStars) s.rectTransform.localScale = Vector3.one;
+        }
+
+        void AnimateStars()
+        {
+            if (_starAnim == null) return;
+            float dt = Time.unscaledDeltaTime;
+            for (int i = 0; i < _starAnim.Length; i++)
+            {
+                float a = _starAnim[i];
+                var rt = liveStars[i].rectTransform;
+                if (a > 0f) rt.localScale = Vector3.one * (1f + 0.6f * a);                               // прыжок
+                else if (a < 0f) rt.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(a * 40f) * 25f * -a); // дрожь
+                else { rt.localScale = Vector3.one; rt.localRotation = Quaternion.identity; }
+                _starAnim[i] = Mathf.MoveTowards(a, 0f, dt * 2.5f);
+            }
+        }
+
         void SetCrosshairReady(bool ready)
         {
             if (ready && !_canFire) _crosshairPop = 1f; // выстрел снова готов — прицел «щёлкает»
@@ -201,6 +257,7 @@ namespace CatTanks.UI
         {
             if (toast.gameObject.activeSelf && Time.unscaledTime >= _toastUntil) toast.gameObject.SetActive(false);
             AnimateAmmo();
+            AnimateStars();
             // готовая ульта «дышит» — заметно краем глаза
             if (_ultReady && ultIcon != null)
                 ultIcon.rectTransform.localScale = Vector3.one * (1f + 0.08f * (0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 6f)));
