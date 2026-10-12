@@ -34,9 +34,22 @@ namespace CatTanks.Level
         /// Кратчайший путь от from до to (включая обе клетки) или null.
         /// Диагонали разрешены, но без «срезания углов» — танк не застрянет на угле стены.
         /// </summary>
-        public List<GridPos> FindPath(GridPos from, GridPos to, int maxNodes = 4000)
+        public List<GridPos> FindPath(GridPos from, GridPos to, int maxNodes = 4000) => FindPath(from, to, maxNodes, 1);
+
+        /// <summary>
+        /// Путь для тела размером footprint×footprint клеток. Узел — левая нижняя клетка площадки;
+        /// узел проходим, только если свободны все клетки площадки. Так большие враги не лезут в щели уже себя.
+        /// Если старт/цель не помещаются, берётся ближайший подходящий узел (в радиусе 2).
+        /// </summary>
+        public List<GridPos> FindPath(GridPos from, GridPos to, int maxNodes, int footprint)
         {
-            if (!_level.IsWalkable(from) || !_level.IsWalkable(to)) return null;
+            int fp = Math.Max(1, footprint);
+            if (fp > 1)
+            {
+                if (!Fits(from.x, from.y, fp) && !Nearest(ref from, fp)) return null;
+                if (!Fits(to.x, to.y, fp) && !Nearest(ref to, fp)) return null;
+            }
+            if (!Fits(from.x, from.y, fp) || !Fits(to.x, to.y, fp)) return null;
             if (from == to) return new List<GridPos> { from };
 
             _search++;
@@ -62,8 +75,8 @@ namespace CatTanks.Level
                 for (int d = 0; d < 8; d++)
                 {
                     int nx = cx + DX[d], ny = cy + DY[d];
-                    if (!_level.IsWalkable(nx, ny)) continue;
-                    if (d >= 4 && (!_level.IsWalkable(cx + DX[d], cy) || !_level.IsWalkable(cx, cy + DY[d])))
+                    if (!Fits(nx, ny, fp)) continue;
+                    if (d >= 4 && (!Fits(cx + DX[d], cy, fp) || !Fits(cx, cy + DY[d], fp)))
                         continue; // не срезаем угол
 
                     int ni = ny * _w + nx;
@@ -79,6 +92,24 @@ namespace CatTanks.Level
                 }
             }
             return null;
+        }
+
+        /// <summary>Помещается ли площадка fp×fp с левой нижней клеткой (x, y).</summary>
+        public bool Fits(int x, int y, int fp)
+        {
+            for (int dx = 0; dx < fp; dx++)
+                for (int dy = 0; dy < fp; dy++)
+                    if (!_level.IsWalkable(x + dx, y + dy)) return false;
+            return true;
+        }
+
+        bool Nearest(ref GridPos p, int fp)
+        {
+            for (int r = 1; r <= 2; r++)
+                for (int dx = -r; dx <= r; dx++)
+                    for (int dy = -r; dy <= r; dy++)
+                        if (Fits(p.x + dx, p.y + dy, fp)) { p = new GridPos(p.x + dx, p.y + dy); return true; }
+            return false;
         }
 
         void Touch(int i)

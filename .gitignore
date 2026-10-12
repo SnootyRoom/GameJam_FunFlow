@@ -107,3 +107,5 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+# прослушка синтезированных звуков (CatTanks → Export SFX to WAV)
+/SfxPreview/

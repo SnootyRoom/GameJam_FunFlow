@@ -13,11 +13,19 @@ namespace CatTanks.Level
         Cover = 2,  // укрытие внутри зоны (физически это тоже стена)
     }
 
+    /// <summary>
+    /// Типы врагов. Новый тип: добавь значение СЮДА (в конец — чтобы не сбить уже сохранённые ассеты),
+    /// затем EnemyDefinition с этим type в EnemyCatalog. Генератор сам начнёт его расставлять.
+    /// </summary>
     public enum EnemyType
     {
         Crawler,  // ползун: бежит к игроку и таранит
         Shooter,  // стрелок: стоит у укрытия, стреляет рикошетом
         Crab,     // планшет-краб: страж у точки Б
+        Runner,   // шустрик: быстрый и хрупкий
+        Brute,    // громила: медленный, очень крепкий, бьёт больно
+        Gunner,   // пулемётчик: очередями, неточно
+        Sniper,   // снайпер: издалека, точно, с лазерным прицелом
     }
 
     /// <summary>Координата клетки на сетке.</summary>
@@ -52,9 +60,21 @@ namespace CatTanks.Level
     [Serializable]
     public struct EnemySpawn
     {
-        public GridPos pos;
+        public GridPos pos;        // левая нижняя клетка площадки
         public EnemyType type;
-        public EnemySpawn(GridPos p, EnemyType t) { pos = p; type = t; }
+        public int footprint;      // размер площадки в клетках (1 = одна клетка, 2 = 2×2)
+        public EnemySpawn(GridPos p, EnemyType t, int footprint = 1) { pos = p; type = t; this.footprint = Math.Max(1, footprint); }
+    }
+
+    /// <summary>Правило появления врага для генератора. Заполняется из EnemyCatalog (EnemyDefinition.ToSpawnRule).</summary>
+    [Serializable]
+    public struct EnemySpawnRule
+    {
+        public EnemyType type;
+        public float weight;        // относительная частота среди обычных врагов
+        public bool prefersCover;   // ставить рядом с укрытиями
+        public bool guard;          // страж: максимум один, рядом с Б
+        public int footprint;       // 1 или 2 (площадка 2×2)
     }
 
     /// <summary>
@@ -80,22 +100,31 @@ namespace CatTanks.Level
         // --- Укрытия ---
         public int minCoverPerLeaf = 1;
         public int maxCoverPerLeaf = 3;
-        public int coverClearance = 1;     // минимум свободных клеток между укрытием и стенами
+        public int coverClearance = 2;     // минимум свободных клеток вокруг укрытия (2 — проходы не уже 2 клеток, крупные враги пролезают)
         public int doorKeepClear = 2;      // радиус «не ставить укрытия» у проходов
 
         // --- Точки A и Б ---
         public int startExitClearRadius = 2;
 
         // --- Враги ---
-        public int difficulty = 1;         // 1..5, растёт с номером уровня
-        public int baseEnemyCount = 4;
-        public int enemiesPerDifficulty = 2;
+        public int difficulty = 1;         // номер уровня (для логов; рост сложности считает DifficultyProgression)
+        public int enemyCount = 4;         // сколько врагов вместе со стражами
+        public List<EnemySpawnRule> enemyPool = new List<EnemySpawnRule>(); // кого можно ставить
         public int minEnemyDistanceFromStart = 10; // в шагах по полу
         public int minEnemySpacing = 3;
-        public bool spawnCrabGuard = true; // краб-страж у точки Б (со сложности 2)
         public bool restLeaf = true;       // одна зона на маршруте без врагов
 
+        // --- Секретные рыбки ---
+        public int secretFishCount = 1;    // ставятся в тупиках, подальше от основного маршрута
+
         public int maxAttempts = 30;       // попыток перегенерации, если уровень не прошёл проверку
+
+        public LevelSettings Clone()
+        {
+            var c = (LevelSettings)MemberwiseClone();
+            c.enemyPool = new List<EnemySpawnRule>(enemyPool ?? new List<EnemySpawnRule>());
+            return c;
+        }
     }
 
     /// <summary>Результат генерации — всё, что нужно для сборки сцены и для ИИ.</summary>
@@ -109,6 +138,7 @@ namespace CatTanks.Level
         public List<EnemySpawn> enemies = new List<EnemySpawn>();
         public List<GridRect> wallRects = new List<GridRect>(); // стены, слитые в прямоугольники для коллайдеров
         public List<GridPos> mainPath = new List<GridPos>();     // кратчайший путь A → Б
+        public List<GridPos> secrets = new List<GridPos>();      // секретные рыбки
         public int[,] distFromStart;                            // BFS-расстояние от A, -1 = недостижимо
         public int restLeafIndex = -1;
 

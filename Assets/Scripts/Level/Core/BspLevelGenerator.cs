@@ -1,4 +1,4 @@
-// Генератор уровня: BSP-арена → проходы → A и Б → укрытия → проверка → враги → слияние стен.
+// Генератор уровня: BSP-арена → проходы → A и Б → укрытия → проверка → враги → секреты → слияние стен.
 // Не зависит от UnityEngine: вход LevelSettings, выход LevelData.
 using System;
 using System.Collections.Generic;
@@ -119,11 +119,12 @@ namespace CatTanks.Level
                 d.mainPath = new GridPathfinder(d).FindPath(d.start, d.exit, W * H * 2);
                 if (d.mainPath == null) return null;
 
-                // 7. Враги
+                // 7. Враги и секретные рыбки
                 PlaceEnemies(startLeaf, exitLeaf, exitDist);
+                PlaceSecrets();
 
                 // 8. Стены → прямоугольники для коллайдеров без швов
-                MergeWalls();
+                d.wallRects = WallMerger.Merge(d);
                 return d;
             }
 
@@ -310,7 +311,6 @@ namespace CatTanks.Level
             void PlaceEnemies(int startLeaf, int exitLeaf, int exitDist)
             {
                 var dist = d.distFromStart;
-                int total = s.baseEnemyCount + s.enemiesPerDifficulty * Math.Max(0, s.difficulty - 1);
 
                 // зона-передышка: на маршруте, ближе всего к середине пути
                 if (s.restLeaf && d.leaves.Count >= 4)
@@ -345,45 +345,67 @@ namespace CatTanks.Level
                         candidates.Add(p);
                     }
 
-                // краб-страж рядом с Б: ему нужна площадка 2×2
-                if (s.spawnCrabGuard && s.difficulty >= 2)
+                var pool = s.enemyPool;
+                if (pool == null || pool.Count == 0) return;
+                int total = s.enemyCount;
+
+                // стражи (например, краб) — по одному каждого типа, в 3..6 клетках от Б
+                foreach (var rule in pool)
                 {
-                    var crabSpots = new List<GridPos>();
+                    if (!rule.guard || total <= 0) continue;
+                    var spots = new List<GridPos>();
                     foreach (var p in candidates)
                     {
                         int de = Cheb(p, d.exit);
                         if (de < 3 || de > 6) continue;
-                        if (d.IsWalkable(p.x + 1, p.y) && d.IsWalkable(p.x, p.y + 1) && d.IsWalkable(p.x + 1, p.y + 1))
-                            crabSpots.Add(p);
+                        if (!Fits(p, rule.footprint) || !FarFromEnemies(p, rule.footprint)) continue;
+                        spots.Add(p);
                     }
-                    if (crabSpots.Count > 0)
-                    {
-                        var c = crabSpots[rng.Next(crabSpots.Count)];
-                        d.enemies.Add(new EnemySpawn(c, EnemyType.Crab));
-                        total--;
-                    }
+                    if (spots.Count == 0) continue;
+                    d.enemies.Add(new EnemySpawn(spots[rng.Next(spots.Count)], rule.type, rule.footprint));
+                    total--;
                 }
 
-                for (int n = 0; n < total; n++)
+                // обычные враги: тип — по весам из каталога, клетка — чем ближе к Б, тем вероятнее
+                var regular = pool.FindAll(r => !r.guard && r.weight > 0);
+                if (regular.Count == 0) return;
+                for (int placed = 0, tries = 0; placed < total && tries < total * 3; tries++)
                 {
-                    // доля стрелков растёт к концу уровня
-                    bool shooter = rng.NextDouble() < 0.3 + 0.4 * (n / (float)Math.Max(1, total - 1));
-                    var pick = WeightedPick(candidates, dist, exitDist, shooter);
-                    if (pick == null) break;
-                    d.enemies.Add(new EnemySpawn(pick.Value, shooter ? EnemyType.Shooter : EnemyType.Crawler));
+                    var rule = PickRule(regular);
+                    var pick = WeightedPick(candidates, dist, exitDist, rule);
+                    if (pick == null) continue;
+                    d.enemies.Add(new EnemySpawn(pick.Value, rule.type, rule.footprint));
+                    placed++;
                 }
             }
 
-            GridPos? WeightedPick(List<GridPos> candidates, int[,] dist, int exitDist, bool nearCover)
+            EnemySpawnRule PickRule(List<EnemySpawnRule> rules)
             {
-                // проход 0: стрелок рядом с укрытием; 1: рядом с любой стеной; 2: где угодно
-                for (int pass = nearCover ? 0 : 2; pass < 3; pass++)
+                double sum = 0;
+                foreach (var r in rules) sum += r.weight;
+                double x = rng.NextDouble() * sum;
+                foreach (var r in rules) { x -= r.weight; if (x <= 0) return r; }
+                return rules[rules.Count - 1];
+            }
+
+            bool Fits(GridPos p, int footprint)
+            {
+                for (int dx = 0; dx < footprint; dx++)
+                    for (int dy = 0; dy < footprint; dy++)
+                        if (!d.IsWalkable(p.x + dx, p.y + dy)) return false;
+                return true;
+            }
+
+            GridPos? WeightedPick(List<GridPos> candidates, int[,] dist, int exitDist, EnemySpawnRule rule)
+            {
+                // проход 0: любитель укрытий рядом с укрытием; 1: рядом с любой стеной; 2: где угодно
+                for (int pass = rule.prefersCover ? 0 : 2; pass < 3; pass++)
                 {
                     double sum = 0;
                     var pool = new List<KeyValuePair<GridPos, double>>();
                     foreach (var p in candidates)
                     {
-                        if (!FarFromEnemies(p)) continue;
+                        if (!Fits(p, rule.footprint) || !FarFromEnemies(p, rule.footprint)) continue;
                         if (pass == 0 && !TileNear(p, 2, true)) continue;
                         if (pass == 1 && !TileNear(p, 1, false)) continue;
                         double t = Math.Min(1.0, dist[p.x, p.y] / (double)exitDist);
@@ -399,14 +421,59 @@ namespace CatTanks.Level
                 return null;
             }
 
-            bool FarFromEnemies(GridPos p)
+            bool FarFromEnemies(GridPos p, int footprint)
             {
                 foreach (var e in d.enemies)
                 {
-                    int r = e.type == EnemyType.Crab ? s.minEnemySpacing + 1 : s.minEnemySpacing;
+                    int r = s.minEnemySpacing + Math.Max(footprint, e.footprint) - 1;
                     if (Cheb(p, e.pos) < r) return false;
                 }
                 return true;
+            }
+
+            // ---------------------------------------------------------------- Секретные рыбки
+
+            /// <summary>Рыбки — в клетках, максимально удалённых от основного маршрута (тупики, углы зон).</summary>
+            void PlaceSecrets()
+            {
+                if (s.secretFishCount <= 0) return;
+
+                // BFS от всех клеток основного пути сразу: «насколько далеко надо свернуть»
+                var off = new int[W, H];
+                for (int x = 0; x < W; x++) for (int y = 0; y < H; y++) off[x, y] = -1;
+                var q = new Queue<GridPos>();
+                foreach (var p in d.mainPath) { off[p.x, p.y] = 0; q.Enqueue(p); }
+                while (q.Count > 0)
+                {
+                    var c = q.Dequeue();
+                    int nd = off[c.x, c.y] + 1;
+                    Visit(off, q, c.x + 1, c.y, nd); Visit(off, q, c.x - 1, c.y, nd);
+                    Visit(off, q, c.x, c.y + 1, nd); Visit(off, q, c.x, c.y - 1, nd);
+                }
+
+                var taken = new HashSet<GridPos>();
+                foreach (var e in d.enemies)
+                    for (int dx = -1; dx <= e.footprint; dx++)
+                        for (int dy = -1; dy <= e.footprint; dy++) taken.Add(new GridPos(e.pos.x + dx, e.pos.y + dy));
+
+                for (int n = 0; n < s.secretFishCount; n++)
+                {
+                    GridPos best = default;
+                    int bestScore = -1;
+                    for (int x = 1; x < W - 1; x++)
+                        for (int y = 1; y < H - 1; y++)
+                        {
+                            var p = new GridPos(x, y);
+                            if (off[x, y] < 0 || keepClear[x, y] || taken.Contains(p)) continue;
+                            bool spaced = true;
+                            foreach (var other in d.secrets) if (Cheb(p, other) < 6) { spaced = false; break; }
+                            if (!spaced) continue;
+                            int score = off[x, y] * 4 + rng.Next(4); // чуть случайности среди равных
+                            if (score > bestScore) { bestScore = score; best = p; }
+                        }
+                    if (bestScore < 0) break;
+                    d.secrets.Add(best);
+                }
             }
 
             bool TileNear(GridPos p, int r, bool coverOnly)
@@ -435,32 +502,6 @@ namespace CatTanks.Level
             }
 
             static int Cheb(GridPos a, GridPos b) => Math.Max(Math.Abs(a.x - b.x), Math.Abs(a.y - b.y));
-
-            // ---------------------------------------------------------------- Слияние стен
-
-            void MergeWalls()
-            {
-                var used = new bool[W, H];
-                for (int y = 0; y < H; y++)
-                    for (int x = 0; x < W; x++)
-                    {
-                        if (used[x, y] || d.tiles[x, y] == Tile.Floor) continue;
-                        int w = 1;
-                        while (x + w < W && !used[x + w, y] && d.tiles[x + w, y] != Tile.Floor) w++;
-                        int h = 1;
-                        while (y + h < H && RowSolid(x, y + h, w, used)) h++;
-                        for (int yy = y; yy < y + h; yy++)
-                            for (int xx = x; xx < x + w; xx++) used[xx, yy] = true;
-                        d.wallRects.Add(new GridRect(x, y, w, h));
-                    }
-            }
-
-            bool RowSolid(int x, int y, int w, bool[,] used)
-            {
-                for (int xx = x; xx < x + w; xx++)
-                    if (used[xx, y] || d.tiles[xx, y] == Tile.Floor) return false;
-                return true;
-            }
 
             // ---------------------------------------------------------------- Утилиты
 
