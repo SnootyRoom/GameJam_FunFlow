@@ -20,7 +20,7 @@ namespace CatTanks
         Shot, EnemyShot, Bounce, Hit, WallHit, Explosion, PlayerHurt, PlayerDeath, Pickup,
         UltReady, NutWhistle, NutImpact, Win, UiClick, UiHover, Alert, Empty, Purchase,
         LevelStart, ReloadStart, ReloadEnd, WhizBy, DeathKnell, BossRoar, Combo, Coin, Heal,
-        MenuEnter, PauseOpen, PauseClose, // новые — только в конец: индексы overrides не должны съехать
+        MenuEnter, PauseOpen, PauseClose, EnemyCharge, // новые — только в конец: индексы overrides не должны съехать
     }
 
     public class Sfx : MonoBehaviour
@@ -410,6 +410,14 @@ namespace CatTanks
                     SubKick(d, 0.2f, 0.12f, 100, 55, 0.35f);                                               // лёгкий толчок — поехали
                     Room(d, 0.15f, 0.2f, 24);
                     Normalize(d, 0.5f);
+                    break;
+
+                case SfxId.EnemyCharge: // враг заряжает выстрел: короткое нарастающее «уиии» и щелчок взвода
+                    d = Buf(0.5f);
+                    Sine(d, 0f, 0.4f, 300, 900, 0.3f, 0.3f, 1f);
+                    NoiseF(d, 0f, 0.4f, 0.15f, 0.3f, 1f, F.BP, 800, 2500, 2f);
+                    Modal(d, 0.0f, 2200, new[] { 1f, 1.6f }, new[] { 1f, 0.4f }, new[] { 0.01f, 0.006f }, 0.25f);
+                    Normalize(d, 0.4f);
                     break;
 
                 case SfxId.UiHover:

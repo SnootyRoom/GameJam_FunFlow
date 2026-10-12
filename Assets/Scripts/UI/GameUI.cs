@@ -22,6 +22,7 @@ namespace CatTanks.UI
 
         GameUIView _ui;
         PlayerUltimate _ult;
+        PlayerTank _tank;                    // для индикатора боезапаса
         System.Action _afterTutorial;
         bool _titleDone;
 
@@ -93,6 +94,14 @@ namespace CatTanks.UI
             if (_ui.hud.gameObject.activeSelf)
                 _ui.hud.UpdateExitArrow(Camera.main, flow.Current != null ? flow.Current.Exit : null);
             _ui.hud.UpdateCrosshair(GameInput.MouseScreen());
+            if (_ui.hud.gameObject.activeSelf)
+            {
+                if (_tank != null) _ui.hud.SetAmmo(true, _tank.AmmoLeft, _tank.AmmoMax, _tank.Reload01, _tank.CanFire);
+                else _ui.hud.SetAmmo(false, 0, 0, 1f, true);
+                bool minigun = _tank != null && _tank.minigunEnabled;
+                if (minigun) _ui.hud.SetMinigun(true, _tank.MinigunRounds, _tank.MinigunMagazine, _tank.MinigunReload01, _tank.MinigunReloading);
+                else _ui.hud.SetMinigun(false, 0, 0, 1f, false);
+            }
         }
 
         // ------------------------------------------------------------------ Кнопки
@@ -230,6 +239,7 @@ namespace CatTanks.UI
             _ui.hud.SetEnemies(ctx.AliveEnemyCount());
             if (ctx.PlayerHealth != null) _ui.hud.SetHearts(ctx.PlayerHealth.Hp, ctx.PlayerHealth.maxHp);
             BindUltimate(ctx.Player != null ? ctx.Player.GetComponent<PlayerUltimate>() : null);
+            _tank = ctx.Player != null ? ctx.Player.GetComponent<PlayerTank>() : null;
         }
 
         void HandleLevelCompleted(LevelContext ctx) => _ui.banner.ShowLevelComplete(ctx.LevelNumber);

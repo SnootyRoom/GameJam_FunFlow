@@ -95,9 +95,10 @@ namespace CatTanks.EditorTools
             FillFromArt(ref t.goButton, "button_go");
             FillFromArt(ref t.skipButton, "button_skip");
             FillFromArt(ref t.tutorialFish, "finish_003", "Assets/Art/Environment");
+            FillFromArt(ref t.ammoIcon, "snarad", "Assets/Art/Characters");
             foreach (var s in new[] { t.startButton, t.tutorialButton, t.settingsButton, t.exitButton,
                                       t.heartFull, t.heartEmpty, t.pauseContinueButton, t.pauseRestartButton, t.pauseTutorialButton,
-                                      t.pauseSettingsButton, t.pauseMainMenuButton, t.nextButton, t.goButton, t.skipButton })
+                                      t.pauseSettingsButton, t.pauseMainMenuButton, t.nextButton, t.goButton, t.skipButton, t.ammoIcon })
                 MakeCrisp(s);
 
             EditorUtility.SetDirty(t);

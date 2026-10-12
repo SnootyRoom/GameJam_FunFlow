@@ -26,6 +26,9 @@ namespace CatTanks
             PixelButton.Hovered += OnUiHover;
             PixelButton.Pressed += OnUiClick;
             TitleView.Dismissed += OnTitleDismissed;
+            EnemyShooter.ShotTelegraphed += OnShotTelegraphed;
+            PlayerTank.MinigunReloadStarted += OnReloadStarted;
+            PlayerTank.MinigunReloaded += OnReloaded;
             _flow.OnStateChanged += OnStateChanged;
             ApplyMusic(_flow.State);
             _flow.OnLevelStarted += OnLevelStarted;
@@ -49,6 +52,9 @@ namespace CatTanks
             PixelButton.Hovered -= OnUiHover;
             PixelButton.Pressed -= OnUiClick;
             TitleView.Dismissed -= OnTitleDismissed;
+            EnemyShooter.ShotTelegraphed -= OnShotTelegraphed;
+            PlayerTank.MinigunReloadStarted -= OnReloadStarted;
+            PlayerTank.MinigunReloaded -= OnReloaded;
             _flow.OnStateChanged -= OnStateChanged;
             _flow.OnLevelStarted -= OnLevelStarted;
             _flow.OnLevelCompleted -= OnLevelCompleted;
@@ -114,6 +120,9 @@ namespace CatTanks
         void OnUiHover() => Sfx.Play(SfxId.UiHover, 0.6f, 0.03f);
         void OnUiClick() => Sfx.Play(SfxId.UiClick, 0.8f, 0.02f);
         void OnTitleDismissed() => Sfx.Play(SfxId.MenuEnter, 0.9f, 0f);
+        void OnShotTelegraphed(Vector2 at) => Sfx.PlayAt(SfxId.EnemyCharge, at, 0.55f, 0.08f);
+        void OnReloadStarted() => Sfx.Play(SfxId.ReloadStart, 0.5f, 0.05f);
+        void OnReloaded() => Sfx.Play(SfxId.ReloadEnd, 0.6f, 0.03f);
 
         // пауза: звук только на переходах игра ↔ пауза (не при уходе в меню или смерти)
         GameState _lastState = GameState.Menu;

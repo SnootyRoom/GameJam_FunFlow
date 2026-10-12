@@ -74,6 +74,8 @@ namespace CatTanks.UI
             v.exitArrow.gameObject.SetActive(false);
 
             BuildUltWidget(rt, v);
+            BuildAmmoWidget(rt, v);
+            BuildMinigunWidget(rt, v);
 
             // прицел — последним, поверх остального HUD
             v.crosshair = UIFactory.Rect(rt, "Crosshair", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(36, 36));
@@ -116,6 +118,65 @@ namespace CatTanks.UI
             UIFactory.Image(fill, null, t.accent);
             v.ultBarFill = fill;
             root.gameObject.SetActive(false); // покажет GameUI, если у танка есть ульта
+        }
+
+        /// <summary>Боезапас над ультой: иконка на каждый снаряд в полёте и полоска перезарядки под ними.</summary>
+        void BuildAmmoWidget(RectTransform hud, HudView v)
+        {
+            const int max = 8;                // запас иконок; лишние прячет HudView по лимиту танка
+            const float icon = 48f, step = 54f; // картинка 16 px → ровно ×3
+            var root = UIFactory.Rect(hud, "Ammo", Vector2.zero, new Vector2(32, 144), new Vector2(max * step, icon + 22));
+            v.ammoRoot = root;
+            v.ammoPips = new Image[max];
+            for (int i = 0; i < max; i++)
+            {
+                var pip = UIFactory.Rect(root, "Shell" + i, Vector2.zero, new Vector2(i * step + icon / 2f, 22 + icon / 2f), new Vector2(icon, icon));
+                pip.pivot = new Vector2(0.5f, 0.5f); // «подпрыгивает» от центра
+                v.ammoPips[i] = UIFactory.Image(pip, Or(t.ammoIcon, Or(t.circle, Prims.Circle)), Color.white);
+                v.ammoPips[i].preserveAspect = true;
+                var shadow = pip.gameObject.AddComponent<Shadow>(); // жёсткая тень — читается на любом полу
+                shadow.effectColor = new Color(0, 0, 0, 0.6f);
+                shadow.effectDistance = new Vector2(3, -3);
+            }
+
+            var bar = UIFactory.Rect(root, "Reload", Vector2.zero, new Vector2(0, 2), new Vector2(5 * step - (step - icon), 12));
+            UIFactory.Image(bar, null, new Color(0f, 0f, 0f, 0.55f));
+            var fill = UIFactory.Stretch(bar, "Fill");
+            fill.offsetMin = new Vector2(2, 2);
+            fill.offsetMax = new Vector2(-2, -2);
+            fill.anchorMax = new Vector2(1f, 1f);
+            UIFactory.Image(fill, null, Color.white);
+            v.ammoReloadFill = fill;
+            v.reloadColor = t.accent;
+            root.gameObject.SetActive(false); // покажет GameUI, если у игрока PlayerTank
+        }
+
+        /// <summary>Магазин пулемёта над боезапасом: маленькие патроны и полоска перезарядки справа.</summary>
+        void BuildMinigunWidget(RectTransform hud, HudView v)
+        {
+            const int max = 8;
+            const float w = 15f, h = 30f, step = 21f;
+            var root = UIFactory.Rect(hud, "Minigun", Vector2.zero, new Vector2(32, 226), new Vector2(max * step + 160, h));
+            v.minigunRoot = root;
+            v.minigunPips = new Image[max];
+            for (int i = 0; i < max; i++)
+            {
+                var pip = UIFactory.Rect(root, "Round" + i, Vector2.zero, new Vector2(i * step, 0), new Vector2(w, h));
+                v.minigunPips[i] = UIFactory.Image(pip, null, Color.white);
+                var outline = pip.gameObject.AddComponent<Outline>(); // пиксельная рамка
+                outline.effectColor = new Color(0, 0, 0, 0.85f);
+                outline.effectDistance = new Vector2(3, -3);
+            }
+            // полоска перезарядки — сразу за патронами (видна только во время перезарядки)
+            var bar = UIFactory.Rect(root, "Reload", Vector2.zero, new Vector2(4 * step + 8, 9), new Vector2(120, 12));
+            UIFactory.Image(bar, null, new Color(0f, 0f, 0f, 0.55f));
+            var fill = UIFactory.Stretch(bar, "Fill");
+            fill.offsetMin = new Vector2(2, 2);
+            fill.offsetMax = new Vector2(-2, -2);
+            UIFactory.Image(fill, null, v.minigunOn);
+            v.minigunReloadFill = fill;
+            bar.gameObject.SetActive(false);
+            root.gameObject.SetActive(false);
         }
 
         // ------------------------------------------------------------------ Баннер

@@ -31,8 +31,32 @@ namespace CatTanks
         [Tooltip("Между выстрелами башня (или весь спрайт стрелка) смотрит на игрока")]
         public bool trackPlayer = true;
 
+        [Header("Предупреждение о выстреле")]
+        [Tooltip("Сколько секунд враг «заряжает» выстрел перед тем, как выстрелить (0 — без предупреждения)")]
+        public float telegraphTime = 0.45f;
+        [Tooltip("Цвет, которым мигает враг перед выстрелом")]
+        public Color telegraphColor = new Color(1f, 0.3f, 0.3f);
+        [Tooltip("Показывать пунктир, куда полетит снаряд")]
+        public bool telegraphLine = true;
+        public Color telegraphLineColor = new Color(1f, 0.35f, 0.35f, 0.85f);
+        [Tooltip("Длина пунктира (юниты). Короче — только направление, длиннее — видно и рикошет")]
+        public float telegraphLineLength = 5f;
+
+        /// <summary>Враг начал заряжать выстрел (точка) — для звука.</summary>
+        public static event System.Action<Vector2> ShotTelegraphed;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() { ShotTelegraphed = null; }
+
         LevelContext _ctx;
         float _timer, _holdAimUntil;
+        bool _windup;                         // заряжает выстрел
+        float _windupStart, _windupEnd;
+        Vector2 _windupDir;
+        SpriteRenderer[] _renderers;
+        Color[] _colors;
+        readonly List<Vector2> _linePoints = new List<Vector2>();
+        readonly List<SpriteRenderer> _dots = new List<SpriteRenderer>();
         Vector2 _aimDir = Vector2.right;
         readonly List<Vector2> _debugPoints = new List<Vector2>();
         bool _searching;                      // идёт поиск рикошета, растянутый по кадрам
@@ -48,7 +72,7 @@ namespace CatTanks
 
         void Update()
         {
-            if (_ctx == null || !_ctx.PlayerAlive) return;
+            if (_ctx == null || !_ctx.PlayerAlive) { if (_windup) EndWindup(); return; }
             var player = _ctx.Player.transform;
 
             // между выстрелами следим взглядом за игроком, а после выстрела ненадолго держим направление выстрела
@@ -61,6 +85,8 @@ namespace CatTanks
                 float want = Mathf.Atan2(_aimDir.y, _aimDir.x) * Mathf.Rad2Deg;
                 turret.rotation = Quaternion.Euler(0, 0, Mathf.MoveTowardsAngle(cur, want, turretTurnSpeed * Time.deltaTime));
             }
+
+            if (_windup) { UpdateWindup(); return; }
 
             _timer -= Time.deltaTime;
             if (_timer > 0f) return;
@@ -91,9 +117,107 @@ namespace CatTanks
             float err = Random.Range(-aimErrorDegrees, aimErrorDegrees);
             dir = Quaternion.Euler(0, 0, err) * dir;
             _aimDir = dir;
-            _holdAimUntil = Time.time + 0.5f;
+            _holdAimUntil = Time.time + telegraphTime + 0.5f;
+            if (telegraphTime > 0f) BeginWindup(dir);
+            else Fire(dir);
+        }
+
+        void Fire(Vector2 dir)
+        {
             Bullet.Spawn(Muzzle(dir), dir, gameObject, bulletColor, bulletSpeed, maxBounces, bulletPrefab, bulletSprite);
             _timer = fireInterval * Random.Range(0.8f, 1.2f);
+        }
+
+        // ------------------------------------------------------------------ Предупреждение о выстреле
+        // Выстрел уже выбран, но вылетит через telegraphTime: враг мигает, а пунктир показывает, куда он бьёт.
+        // Направление не меняется — у игрока есть время уйти с линии.
+
+        void BeginWindup(Vector2 dir)
+        {
+            if (_renderers == null)
+            {
+                _renderers = GetComponentsInChildren<SpriteRenderer>();
+                _colors = new Color[_renderers.Length];
+            }
+            for (int i = 0; i < _renderers.Length; i++) if (_renderers[i] != null) _colors[i] = _renderers[i].color;
+            _windup = true;
+            _windupDir = dir;
+            _windupStart = Time.time;
+            _windupEnd = Time.time + telegraphTime;
+            ShotTelegraphed?.Invoke(transform.position);
+            UpdateWindup();
+        }
+
+        void UpdateWindup()
+        {
+            float k = Mathf.Clamp01((Time.time - _windupStart) / telegraphTime);
+            // мигание ускоряется к выстрелу
+            bool on = Mathf.Repeat((Time.time - _windupStart) * Mathf.Lerp(8f, 20f, k), 1f) < 0.5f;
+            for (int i = 0; i < _renderers.Length; i++)
+                if (_renderers[i] != null) _renderers[i].color = Color.Lerp(_colors[i], telegraphColor, on ? 0.85f : 0.2f);
+            if (telegraphLine) DrawLine(Mathf.Lerp(0.35f, 1f, k));
+
+            if (Time.time >= _windupEnd)
+            {
+                EndWindup();
+                Fire(_windupDir);
+            }
+        }
+
+        void EndWindup()
+        {
+            _windup = false;
+            if (_renderers != null)
+                for (int i = 0; i < _renderers.Length; i++) if (_renderers[i] != null) _renderers[i].color = _colors[i];
+            foreach (var d in _dots) if (d != null) d.gameObject.SetActive(false);
+        }
+
+        void OnDisable() { if (_windup) EndWindup(); }
+
+        void OnDestroy()
+        {
+            foreach (var d in _dots) if (d != null) Destroy(d.gameObject);
+        }
+
+        /// <summary>Пунктир по траектории будущего снаряда (тот же расчёт, что у полёта). Пересчитываем каждый кадр — краб ходит.</summary>
+        void DrawLine(float alpha)
+        {
+            Vector2 from = Muzzle(_windupDir);
+            Ricochet.Simulate(from, _windupDir, bulletRadius, maxBounces, telegraphLineLength, transform, null, _linePoints);
+            const float spacing = 0.3f;
+            int used = 0;
+            for (int s = 1; s < _linePoints.Count; s++)
+            {
+                Vector2 a = _linePoints[s - 1], b = _linePoints[s];
+                float len = Vector2.Distance(a, b);
+                for (float t = 0f; t < len; t += spacing)
+                {
+                    var dot = TakeDot(used++);
+                    dot.transform.position = Vector2.Lerp(a, b, t / Mathf.Max(0.001f, len));
+                    var c = telegraphLineColor;
+                    c.a *= alpha * Mathf.Lerp(1f, 0.25f, (float)used * spacing / telegraphLineLength); // к концу тает
+                    dot.color = c;
+                }
+            }
+            for (int i = used; i < _dots.Count; i++) _dots[i].gameObject.SetActive(false);
+        }
+
+        SpriteRenderer TakeDot(int index)
+        {
+            if (index < _dots.Count)
+            {
+                _dots[index].gameObject.SetActive(true);
+                return _dots[index];
+            }
+            // точки живут в корне уровня: не крутятся вместе со стрелком и удаляются вместе с уровнем
+            var go = new GameObject("ShotWarning");
+            go.transform.SetParent(_ctx != null && _ctx.Root != null ? _ctx.Root : null, false);
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = PixelArt.AimDot;
+            sr.sortingOrder = 9;
+            if (_renderers != null && _renderers.Length > 0 && _renderers[0] != null) sr.sharedMaterial = _renderers[0].sharedMaterial;
+            _dots.Add(sr);
+            return sr;
         }
 
         Vector2 Muzzle(Vector2 dir) => (Vector2)transform.position + dir * (bodyRadius + bulletRadius + 0.05f);

@@ -23,6 +23,7 @@ namespace CatTanks.UI
         public Sprite crosshair;              // 32×32
         public Sprite panelSprite;            // полоса баннера «Level Complete»
         public Sprite ultIcon;                // иконка ульты в HUD (Assets/Art/Ult/walnut)
+        public Sprite ammoIcon;               // иконка снаряда в HUD (пусто = подставится Assets/Art/Characters/snarad)
 
         [Header("Кнопки главного меню (картинки с готовым текстом; 456×120; пусто = бумажная кнопка с текстом)")]
         public Sprite startButton;

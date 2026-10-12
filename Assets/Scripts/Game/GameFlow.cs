@@ -69,6 +69,10 @@ namespace CatTanks
             OnEnemyKilled += _fx.OnEnemyKilled;
             _sfx = new SfxPlayer(this);
             _sfx.Subscribe();
+            // стоп-кадр и тряска; добавь HitFeel на этот объект вручную, чтобы настраивать числа
+            var feel = GetComponent<HitFeel>();
+            if (feel == null) feel = gameObject.AddComponent<HitFeel>();
+            feel.Bind(this);
         }
 
         void OnDestroy()

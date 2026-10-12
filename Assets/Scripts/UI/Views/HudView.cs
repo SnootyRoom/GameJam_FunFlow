@@ -1,4 +1,4 @@
-// HUD в бою: сердечки, номер уровня, счётчик врагов, всплывающая подсказка, стрелка на выход и прицел.
+// HUD в бою: сердечки, номер уровня, счётчик врагов, боезапас, всплывающая подсказка, стрелка на выход и прицел.
 // Лежит на корне префаба Hud. Только показывает — что показать, решает GameUI.
 using System.Collections.Generic;
 using UnityEngine;
@@ -34,6 +34,25 @@ namespace CatTanks.UI
         public Color ultPipOn = new Color(1f, 0.8f, 0.3f);
         public Color ultPipOff = new Color(0f, 0f, 0f, 0.45f);
         public Color ultIconInactive = new Color(1f, 1f, 1f, 0.4f);
+
+        [Header("Боезапас (снаряды основного орудия)")]
+        public RectTransform ammoRoot;
+        public Image[] ammoPips;              // по иконке на снаряд; лишние прячутся
+        public RectTransform ammoReloadFill;  // полоска перезарядки (anchorMax.x = готовность)
+        public Color ammoOn = Color.white;
+        public Color ammoOff = new Color(0.15f, 0.12f, 0.2f, 0.55f);
+        public Color reloadColor = new Color(1f, 0.8f, 0.3f);
+        public Color readyColor = Color.white;
+        [Tooltip("Прицел, пока выстрел не готов: прозрачность и масштаб")]
+        [Range(0f, 1f)] public float crosshairNotReadyAlpha = 0.35f;
+        [Range(0.3f, 1f)] public float crosshairNotReadyScale = 0.75f;
+
+        [Header("Магазин пулемёта")]
+        public RectTransform minigunRoot;
+        public Image[] minigunPips;           // патрон на каждый выстрел магазина
+        public RectTransform minigunReloadFill;
+        public Color minigunOn = new Color(0.95f, 0.55f, 0.25f);
+        public Color minigunOff = new Color(0.15f, 0.12f, 0.2f, 0.55f);
 
         [Header("Тексты ({0} — число)")]
         public string levelFormat = "Level {0}";
@@ -74,6 +93,91 @@ namespace CatTanks.UI
             }
         }
 
+        // ----- боезапас -----
+        int _ammoShown = -1;
+        bool _canFire = true;
+        float[] _pipPop;                      // «подпрыгивание» иконки, когда снаряд вернулся
+        float _crosshairPop;
+        Image _crosshairImage;
+        Color _crosshairColor;
+
+        /// <summary>Боезапас: left из max готовы, reload01 — перезарядка, canFire — ЛКМ выстрелит прямо сейчас.</summary>
+        public void SetAmmo(bool visible, int left, int max, float reload01, bool canFire)
+        {
+            if (ammoRoot == null) return;
+            ammoRoot.gameObject.SetActive(visible);
+            if (!visible) { SetCrosshairReady(true); return; }
+            if (_pipPop == null || _pipPop.Length != ammoPips.Length) _pipPop = new float[ammoPips.Length];
+            for (int i = 0; i < ammoPips.Length; i++)
+            {
+                ammoPips[i].gameObject.SetActive(i < max);
+                ammoPips[i].color = i < left ? ammoOn : ammoOff;
+                if (_ammoShown >= 0 && i < left && i >= _ammoShown) _pipPop[i] = 1f; // снаряд вернулся — иконка подпрыгивает
+            }
+            _ammoShown = left;
+            if (ammoReloadFill != null)
+            {
+                ammoReloadFill.anchorMax = new Vector2(Mathf.Clamp01(reload01), 1f);
+                var img = ammoReloadFill.GetComponent<Image>();
+                if (img != null) img.color = reload01 >= 1f ? readyColor : reloadColor;
+            }
+            SetCrosshairReady(canFire);
+        }
+
+        /// <summary>Магазин пулемёта: left из max патронов; во время перезарядки патроны «наполняются» по reload01.</summary>
+        public void SetMinigun(bool visible, int left, int max, float reload01, bool reloading)
+        {
+            if (minigunRoot == null) return;
+            minigunRoot.gameObject.SetActive(visible);
+            if (!visible) return;
+            int filled = reloading ? Mathf.FloorToInt(reload01 * max) : left; // при перезарядке патроны заполняются по одному
+            for (int i = 0; i < minigunPips.Length; i++)
+            {
+                minigunPips[i].gameObject.SetActive(i < max);
+                var c = i < filled ? minigunOn : minigunOff;
+                if (reloading && i < filled) c.a *= 0.6f; // ещё не готовы — бледнее
+                minigunPips[i].color = c;
+            }
+            if (minigunReloadFill != null)
+            {
+                minigunReloadFill.parent.gameObject.SetActive(reloading);
+                minigunReloadFill.anchorMax = new Vector2(Mathf.Clamp01(reload01), 1f);
+            }
+        }
+
+        void SetCrosshairReady(bool ready)
+        {
+            if (ready && !_canFire) _crosshairPop = 1f; // выстрел снова готов — прицел «щёлкает»
+            _canFire = ready;
+        }
+
+        void AnimateAmmo()
+        {
+            float dt = Time.unscaledDeltaTime;
+            if (_pipPop != null)
+                for (int i = 0; i < _pipPop.Length; i++)
+                {
+                    _pipPop[i] = Mathf.MoveTowards(_pipPop[i], 0f, dt * 6f);
+                    ammoPips[i].rectTransform.localScale = Vector3.one * (1f + 0.35f * _pipPop[i]);
+                }
+
+            if (crosshair == null) return;
+            if (_crosshairImage == null)
+            {
+                _crosshairImage = crosshair.GetComponent<Image>();
+                if (_crosshairImage != null) _crosshairColor = _crosshairImage.color;
+            }
+            _crosshairPop = Mathf.MoveTowards(_crosshairPop, 0f, dt * 5f);
+            float scale = (_canFire ? 1f : crosshairNotReadyScale) + 0.3f * _crosshairPop;
+            crosshair.localScale = Vector3.one * scale;
+            if (_crosshairImage != null)
+            {
+                var c = _crosshairColor;
+                c.a *= _canFire ? 1f : crosshairNotReadyAlpha;
+                _crosshairImage.color = c;
+            }
+        }
+
         bool _ultReady;
 
         /// <summary>Индикатор ульты. charges/max — заряды, progress — до следующего, usable — можно применить сейчас.</summary>
@@ -96,6 +200,7 @@ namespace CatTanks.UI
         void Update()
         {
             if (toast.gameObject.activeSelf && Time.unscaledTime >= _toastUntil) toast.gameObject.SetActive(false);
+            AnimateAmmo();
             // готовая ульта «дышит» — заметно краем глаза
             if (_ultReady && ultIcon != null)
                 ultIcon.rectTransform.localScale = Vector3.one * (1f + 0.08f * (0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 6f)));
