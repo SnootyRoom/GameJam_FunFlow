@@ -9,14 +9,14 @@ namespace CatTanks.Level
     {
         /// <summary>
         /// Генерирует уровень. seed = 0 — случайный. difficulty 1..5 влияет на число врагов.
-        /// Если попытка не прошла проверку, пробует следующий сид.
+        /// Если попытка не прошла проверку, пробует следующий сид. rules — кого и как ставить (null = набор по умолчанию).
         /// </summary>
-        public static LevelData Generate(LevelSettings s, int seed, int difficulty)
+        public static LevelData Generate(LevelSettings s, int seed, int difficulty, IList<EnemySpawnRule> rules = null)
         {
             int baseSeed = seed != 0 ? seed : Environment.TickCount & 0x7FFFFFFF;
             for (int attempt = 0; attempt < Math.Max(1, s.maxAttempts); attempt++)
             {
-                var data = new Builder(s, baseSeed + attempt * 7919, difficulty).TryBuild();
+                var data = new Builder(s, baseSeed + attempt * 7919, difficulty, rules ?? EnemySpawnRule.Defaults()).TryBuild();
                 if (data != null) return data;
             }
             throw new InvalidOperationException(
@@ -62,12 +62,14 @@ namespace CatTanks.Level
             readonly LevelData d;
             readonly int W, H;
             readonly int difficulty;
+            readonly IList<EnemySpawnRule> rules;
             bool[,] keepClear;
 
-            public Builder(LevelSettings settings, int seed, int difficulty)
+            public Builder(LevelSettings settings, int seed, int difficulty, IList<EnemySpawnRule> rules)
             {
                 s = settings;
                 this.difficulty = difficulty;
+                this.rules = rules;
                 rng = new Random(seed);
                 W = Math.Max(settings.width, 2 * settings.minLeafSize + 3);
                 H = Math.Max(settings.height, 2 * settings.minLeafSize + 3);
@@ -347,36 +349,85 @@ namespace CatTanks.Level
                         candidates.Add(p);
                     }
 
-                // краб-страж рядом с Б: ему нужна площадка 2×2
-                if (s.spawnCrabGuard && difficulty >= 2)
+                // правила, доступные на этой сложности
+                var guards = new List<EnemySpawnRule>();
+                var regular = new List<EnemySpawnRule>();
+                foreach (var r in rules)
                 {
-                    var crabSpots = new List<GridPos>();
-                    foreach (var p in candidates)
-                    {
-                        int de = Cheb(p, d.exit);
-                        if (de < 3 || de > 6) continue;
-                        if (d.IsWalkable(p.x + 1, p.y) && d.IsWalkable(p.x, p.y + 1) && d.IsWalkable(p.x + 1, p.y + 1))
-                            crabSpots.Add(p);
-                    }
-                    if (crabSpots.Count > 0)
-                    {
-                        var c = crabSpots[rng.Next(crabSpots.Count)];
-                        d.enemies.Add(new EnemySpawn(c, EnemyType.Crab));
-                        total--;
-                    }
+                    if (r == null || string.IsNullOrEmpty(r.id) || difficulty < r.minDifficulty) continue;
+                    if (r.placement == SpawnPlacement.GuardExit) guards.Add(r);
+                    else if (r.weight > 0f) regular.Add(r);
                 }
 
+                // 1) стражи у Б — первыми, пока рядом с выходом свободно
+                if (s.spawnGuards)
+                    foreach (var g in guards)
+                    {
+                        int max = g.maxPerLevel > 0 ? g.maxPerLevel : 1;
+                        for (int k = 0; k < max && total > 0; k++)
+                        {
+                            var spot = PickGuardSpot(candidates, g.footprint);
+                            if (spot == null) break;
+                            d.enemies.Add(new EnemySpawn(spot.Value, g.id, g.footprint));
+                            total--;
+                        }
+                    }
+
+                // 2) остальные — правило по весу, место по WeightedPick
+                var count = new Dictionary<EnemySpawnRule, int>();
                 for (int n = 0; n < total; n++)
                 {
-                    // доля стрелков растёт к концу уровня
-                    bool shooter = rng.NextDouble() < 0.3 + 0.4 * (n / (float)Math.Max(1, total - 1));
-                    var pick = WeightedPick(candidates, dist, exitDist, shooter);
+                    var rule = PickRule(regular, count);
+                    if (rule == null) break; // все правила упёрлись в maxPerLevel
+                    var pick = WeightedPick(candidates, dist, exitDist, rule.placement == SpawnPlacement.NearCover, rule.footprint);
                     if (pick == null) break;
-                    d.enemies.Add(new EnemySpawn(pick.Value, shooter ? EnemyType.Shooter : EnemyType.Crawler));
+                    d.enemies.Add(new EnemySpawn(pick.Value, rule.id, rule.footprint));
+                    count[rule] = count.TryGetValue(rule, out var c) ? c + 1 : 1;
                 }
             }
 
-            GridPos? WeightedPick(List<GridPos> candidates, int[,] dist, int exitDist, bool nearCover)
+            EnemySpawnRule PickRule(List<EnemySpawnRule> pool, Dictionary<EnemySpawnRule, int> count)
+            {
+                double sum = 0;
+                foreach (var r in pool) if (CanPlaceMore(r, count)) sum += r.weight;
+                if (sum <= 0) return null;
+                double roll = rng.NextDouble() * sum;
+                foreach (var r in pool)
+                {
+                    if (!CanPlaceMore(r, count)) continue;
+                    roll -= r.weight;
+                    if (roll <= 0) return r;
+                }
+                for (int i = pool.Count - 1; i >= 0; i--) if (CanPlaceMore(pool[i], count)) return pool[i];
+                return null;
+            }
+
+            static bool CanPlaceMore(EnemySpawnRule r, Dictionary<EnemySpawnRule, int> count) =>
+                r.maxPerLevel <= 0 || !count.TryGetValue(r, out var c) || c < r.maxPerLevel;
+
+            /// <summary>Место стража: 3–6 клеток от Б, площадка footprint×footprint свободна.</summary>
+            GridPos? PickGuardSpot(List<GridPos> candidates, int footprint)
+            {
+                var spots = new List<GridPos>();
+                foreach (var p in candidates)
+                {
+                    int de = Cheb(p, d.exit);
+                    if (de < 3 || de > 6 || !Fits(p, footprint) || !FarFromEnemies(p, footprint)) continue;
+                    spots.Add(p);
+                }
+                return spots.Count > 0 ? spots[rng.Next(spots.Count)] : (GridPos?)null;
+            }
+
+            /// <summary>Все клетки площадки footprint×footprint (от p вверх-вправо) — пол.</summary>
+            bool Fits(GridPos p, int footprint)
+            {
+                for (int x = 0; x < footprint; x++)
+                    for (int y = 0; y < footprint; y++)
+                        if (!d.IsWalkable(p.x + x, p.y + y)) return false;
+                return true;
+            }
+
+            GridPos? WeightedPick(List<GridPos> candidates, int[,] dist, int exitDist, bool nearCover, int footprint)
             {
                 // проход 0: стрелок рядом с укрытием; 1: рядом с любой стеной; 2: где угодно
                 for (int pass = nearCover ? 0 : 2; pass < 3; pass++)
@@ -385,7 +436,7 @@ namespace CatTanks.Level
                     var pool = new List<KeyValuePair<GridPos, double>>();
                     foreach (var p in candidates)
                     {
-                        if (!FarFromEnemies(p)) continue;
+                        if (!Fits(p, footprint) || !FarFromEnemies(p, footprint)) continue;
                         if (pass == 0 && !TileNear(p, 2, true)) continue;
                         if (pass == 1 && !TileNear(p, 1, false)) continue;
                         double t = Math.Min(1.0, dist[p.x, p.y] / (double)exitDist);
@@ -401,11 +452,12 @@ namespace CatTanks.Level
                 return null;
             }
 
-            bool FarFromEnemies(GridPos p)
+            /// <summary>Не ближе minEnemySpacing к другим врагам; крупным (footprint > 1) — на клетку больше.</summary>
+            bool FarFromEnemies(GridPos p, int footprint)
             {
                 foreach (var e in d.enemies)
                 {
-                    int r = e.type == EnemyType.Crab ? s.minEnemySpacing + 1 : s.minEnemySpacing;
+                    int r = s.minEnemySpacing + Math.Max(e.footprint, footprint) - 1;
                     if (Cheb(p, e.pos) < r) return false;
                 }
                 return true;

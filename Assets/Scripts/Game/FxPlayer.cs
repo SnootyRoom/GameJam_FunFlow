@@ -21,6 +21,7 @@ namespace CatTanks
             Bullet.Bounced += OnBounced;
             Bullet.HitTarget += OnHitTarget;
             Bullet.HitWall += OnHitWall;
+            NutStrike.Impacted += OnNutImpact;
         }
 
         public void Unsubscribe()
@@ -29,20 +30,24 @@ namespace CatTanks
             Bullet.Bounced -= OnBounced;
             Bullet.HitTarget -= OnHitTarget;
             Bullet.HitWall -= OnHitWall;
+            NutStrike.Impacted -= OnNutImpact;
         }
 
         void OnFired(Bullet b) => Play(_lib.muzzleFlash, b.transform.position, b.Direction);
         void OnBounced(Vector2 at, Vector2 normal) => Play(_lib.ricochet, at, normal);
         void OnHitTarget(Vector2 at, Health target) => Play(_lib.targetHit, at, Vector2.right);
         void OnHitWall(Vector2 at) => Play(_lib.wallHit, at, Vector2.right);
+
+        void OnNutImpact(Vector2 at, float radius, int kills) => Play(_lib.nutImpact, at, Vector2.right, radius); // под размер взрыва
         public void OnEnemyKilled(GameObject enemy) { if (enemy != null) Play(_lib.enemyDeath, enemy.transform.position, Vector2.right); }
 
-        public void Play(FxLibrary.Effect fx, Vector2 at, Vector2 dir)
+        /// <summary>sizeScale — множитель размера из библиотеки (например, под радиус взрыва).</summary>
+        public void Play(FxLibrary.Effect fx, Vector2 at, Vector2 dir, float sizeScale = 1f)
         {
             if (fx == null || fx.duration <= 0f || fx.size <= 0f) return;
             var sprite = fx.sprite != null ? fx.sprite : Prims.Circle;
             Vector2 s = sprite.bounds.size;
-            float k = fx.size / Mathf.Max(0.01f, Mathf.Max(s.x, s.y));
+            float k = fx.size * sizeScale / Mathf.Max(0.01f, Mathf.Max(s.x, s.y));
 
             var go = Prims.Create("Fx", _root, sprite, fx.color, at, Vector2.one * k, 25);
             float angle = fx.randomRotation ? 90f * Random.Range(0, 4) : Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;

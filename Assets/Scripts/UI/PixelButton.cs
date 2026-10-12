@@ -33,6 +33,13 @@ namespace CatTanks.UI
 
         public readonly ButtonClickedEvent onActivated = new ButtonClickedEvent(); // действие кнопки (после задержки)
 
+        // для звука и аналитики: любая пиксельная кнопка навелась / нажалась
+        public static event System.Action Hovered;
+        public static event System.Action Clicked;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() { Hovered = null; Clicked = null; }
+
         bool _hot, _down;
         float _scale = 1f, _scaleVel;
         Vector2 _shift, _shiftVel;
@@ -145,7 +152,9 @@ namespace CatTanks.UI
         protected override void DoStateTransition(SelectionState state, bool instant)
         {
             base.DoStateTransition(state, instant);
+            bool wasHot = _hot;
             _hot = state == SelectionState.Highlighted || state == SelectionState.Pressed;
+            if (_hot && !wasHot && Application.isPlaying) Hovered?.Invoke();
             _down = state == SelectionState.Pressed;
             if (label != null) label.color = _hot ? labelHover : labelNormal;
             if (cursor != null) cursor.SetActive(_hot);
@@ -154,6 +163,7 @@ namespace CatTanks.UI
         void HandleClick()
         {
             if (_busy) return;          // защита от двойного клика, пока ждём действие
+            Clicked?.Invoke();
             _scaleVel += clickPunch * 60f; // толчок пружины — кнопка «выстреливает» и успокаивается
             if (clickDelay <= 0f || !isActiveAndEnabled) { onActivated.Invoke(); return; }
             StartCoroutine(InvokeLater());

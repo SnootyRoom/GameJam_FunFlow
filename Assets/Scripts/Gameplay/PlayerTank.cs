@@ -41,6 +41,13 @@ namespace CatTanks
         float _nextFire, _nextMinigunFire;
         Vector2 _move;
 
+        /// <summary>Выстрел не получился (лимит снарядов, нет зарядов ульты) — для звука «пустого щелчка».</summary>
+        public static event System.Action FireBlocked;
+        public static void RaiseFireBlocked() => FireBlocked?.Invoke();
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() => FireBlocked = null;
+
         /// <summary>Куда смотрит ствол.</summary>
         public Vector2 AimDirection => turret != null ? (Vector2)turret.right : (Vector2)transform.right;
 
@@ -82,6 +89,7 @@ namespace CatTanks
                 _nextFire = Time.time + fireCooldown;
                 Bullet.Spawn(MuzzlePosition, AimDirection, gameObject, bulletColor, bulletSpeed, maxBounces, bulletPrefab, bulletSprite);
             }
+            else if (GameInput.FirePressed() && alive >= maxBulletsAlive) RaiseFireBlocked(); // «пустой щелчок»
             else if (minigunEnabled && GameInput.AltFireHeld() && Time.time >= _nextMinigunFire
                      && alive < Mathf.Min(minigunMaxBullets, maxBulletsAlive))
             {

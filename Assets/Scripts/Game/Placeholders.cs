@@ -30,6 +30,8 @@ namespace CatTanks
             go.AddComponent<PlayerTank>().turret = turret;
             go.AddComponent<AimPreview>();
             go.AddComponent<TrackTrail>();
+            go.AddComponent<PlayerUltimate>();
+            go.AddComponent<PlayerAudio>();
             return go;
         }
 
@@ -45,10 +47,10 @@ namespace CatTanks
         /// </summary>
         static GameObject SpriteEnemy(EnemyDefinition def, Transform parent, Vector2 pos)
         {
-            bool walks = def.type != EnemyType.Shooter;
-            bool shoots = def.type != EnemyType.Crawler;
+            bool walks = def.moves;
+            bool shoots = def.shoots;
 
-            var go = new GameObject(def.type.ToString());
+            var go = new GameObject(def.name);
             go.transform.SetParent(parent, false);
             go.transform.position = pos;
 
@@ -86,11 +88,11 @@ namespace CatTanks
         static GameObject PrimitiveEnemy(EnemyDefinition def, Transform parent, Vector2 pos)
         {
             float size = def.size;
-            var go = Prims.Create(def.type.ToString(), parent, Prims.Square, def.color, pos, Vector2.one * size, 8);
+            var go = Prims.Create(def.name, parent, Prims.Square, def.color, pos, Vector2.one * size, 8);
             Prims.Child("Screen", go.transform, Prims.Square, ScreenColor, Vector2.zero, new Vector2(0.6f, 0.75f), 9);
 
-            bool walks = def.type != EnemyType.Shooter;
-            bool shoots = def.type != EnemyType.Crawler;
+            bool walks = def.moves;
+            bool shoots = def.shoots;
 
             if (walks)
                 for (int i = -1; i <= 1; i++) // лапки
@@ -103,7 +105,7 @@ namespace CatTanks
             if (shoots)
             {
                 turret = Turret(go.transform, size);
-                if (def.type == EnemyType.Crab)
+                if (walks)   // ходит и стреляет (краб) — клешня; только стреляет — жало с «камерой»
                     Prims.Child("Claw", turret, Prims.Square, Prims.Dark(def.color, 0.6f), new Vector2(1.0f, 0), new Vector2(0.5f, 0.25f), 10);
                 else
                 {

@@ -85,6 +85,30 @@ namespace CatTanks
             return Root;
         }
 
+        /// <summary>
+        /// Разрушает стены и укрытия в круге (ульта «Орех»). Клетка становится полом и в данных уровня (по ним ходит ИИ),
+        /// и в Tilemap (коллайдер пересобирается сам). Внешняя рамка арены не разрушается. Возвращает число клеток.
+        /// </summary>
+        public int DestroyCells(Vector2 center, float radius)
+        {
+            if (Data == null) return 0;
+            int count = 0;
+            int x0 = Mathf.FloorToInt(center.x - radius), x1 = Mathf.CeilToInt(center.x + radius);
+            int y0 = Mathf.FloorToInt(center.y - radius), y1 = Mathf.CeilToInt(center.y + radius);
+            for (int x = Mathf.Max(1, x0); x <= Mathf.Min(Data.width - 2, x1); x++)
+                for (int y = Mathf.Max(1, y0); y <= Mathf.Min(Data.height - 2, y1); y++)
+                {
+                    if (Data.tiles[x, y] == CellType.Floor) continue;
+                    if (Vector2.Distance(LevelGrid.CellToWorld(new GridPos(x, y)), center) > radius) continue;
+                    Data.tiles[x, y] = CellType.Floor;
+                    var p = new Vector3Int(x, y, 0);
+                    if (wallMap != null) wallMap.SetTile(p, null);
+                    if (coverMap != null) coverMap.SetTile(p, null);
+                    count++;
+                }
+            return count;
+        }
+
         public void Clear()
         {
             if (Root != null) DestroySafe(Root.gameObject);
@@ -270,7 +294,8 @@ namespace CatTanks
             var settings = config != null ? config.generation : new LevelSettings();
             int difficulty = config != null ? config.startDifficulty : 1;
             Clear();
-            Data = BspLevelGenerator.Generate(settings, settings.seed, difficulty);
+            var spawner = GetComponent<EntitySpawner>();
+            Data = BspLevelGenerator.Generate(settings, settings.seed, difficulty, spawner != null ? spawner.SpawnRules() : null);
             EnsureTilemaps();
             FillTiles(Data);
             Debug.Log($"[LevelBuilder] Предпросмотр: сид {Data.seed}. Перед запуском можно не очищать — уровень пересоберётся.");

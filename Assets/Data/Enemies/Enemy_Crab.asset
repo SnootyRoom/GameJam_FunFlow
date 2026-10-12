@@ -12,7 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7beb516551fd52641adb6b232d8f1a4e, type: 3}
   m_Name: Enemy_Crab
   m_EditorClassIdentifier: 
-  type: 2
   prefab: {fileID: 0}
   footprint: 2
   maxHp: 5
@@ -29,3 +28,10 @@ MonoBehaviour:
   size: 1.7
   sprite: {fileID: 21300000, guid: 5a47f73466d64ae5a728492709e087a7, type: 3}
   spriteFacing: 90
+  moves: 1
+  shoots: 1
+  spawnOnLevels: 1
+  placement: 2
+  spawnWeight: 1
+  minDifficulty: 2
+  maxPerLevel: 1

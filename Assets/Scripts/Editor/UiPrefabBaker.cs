@@ -103,7 +103,7 @@ namespace CatTanks.EditorTools
         static void AssignToScene(GameUIView canvas, UiTheme theme)
         {
 #if UNITY_2023_1_OR_NEWER
-            var all = Object.FindObjectsByType<GameUI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var all = Object.FindObjectsByType<GameUI>(FindObjectsInactive.Include);
 #else
             var all = Object.FindObjectsOfType<GameUI>(true);
 #endif

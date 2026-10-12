@@ -11,7 +11,7 @@ namespace CatTanks.UI
 
         [Header("Тексты ({0} — номер уровня)")]
         public string levelCompleteTitle = "Level {0} Complete!";
-        public string levelCompleteSubtitle = "The phones are panicking. Rolling on...";
+        public string levelCompleteSubtitle = "The bugs are scattering. Rolling on...";
         public string deathTitle = "The Cat Got Hit!";
         public string deathSubtitle = "Trying again...";
 

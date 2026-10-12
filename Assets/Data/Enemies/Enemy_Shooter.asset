@@ -12,7 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7beb516551fd52641adb6b232d8f1a4e, type: 3}
   m_Name: Enemy_Shooter
   m_EditorClassIdentifier: 
-  type: 1
   prefab: {fileID: 0}
   footprint: 1
   maxHp: 2
@@ -29,3 +28,10 @@ MonoBehaviour:
   size: 1.2
   sprite: {fileID: 21300000, guid: c4ef2a5db09f4c8ab815f20d399d2638, type: 3}
   spriteFacing: 0
+  moves: 0
+  shoots: 1
+  spawnOnLevels: 1
+  placement: 1
+  spawnWeight: 1
+  minDifficulty: 1
+  maxPerLevel: 0

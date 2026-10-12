@@ -30,7 +30,7 @@ MonoBehaviour:
     enemiesPerDifficulty: 2
     minEnemyDistanceFromStart: 10
     minEnemySpacing: 3
-    spawnCrabGuard: 1
+    spawnGuards: 1
     restLeaf: 1
     maxAttempts: 30
   startDifficulty: 1

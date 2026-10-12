@@ -26,6 +26,8 @@ namespace CatTanks
         public bool requireAllEnemiesDead = false;   // выход открывается только после зачистки
         [Tooltip("Снаряды ранят своих (враги — врагов, игрок — себя после рикошета)")]
         public bool friendlyFire = true;
+        [Tooltip("Снаряды сбивают друг друга, как в Wii Tanks: можно подставить свою пулю под вражескую")]
+        public bool bulletsCollide = true;
         public float levelCompleteDelay = 1.5f;      // сколько показывать «Уровень пройден»
         public float restartDelay = 1.5f;            // через сколько перезапуск после смерти
         public bool debugKeys = true;                // R — новый уровень, N — пропустить
@@ -48,6 +50,7 @@ namespace CatTanks
         LevelBuilder _builder;
         EntitySpawner _spawner;
         FxPlayer _fx;
+        SfxPlayer _sfx;
 
         LevelSettings Settings => config.generation;
 
@@ -64,12 +67,15 @@ namespace CatTanks
             _fx = new FxPlayer(fx != null ? fx : ScriptableObject.CreateInstance<FxLibrary>());
             _fx.Subscribe();
             OnEnemyKilled += _fx.OnEnemyKilled;
+            _sfx = new SfxPlayer(this);
+            _sfx.Subscribe();
         }
 
         void OnDestroy()
         {
-            Time.timeScale = 1f;
+            GameTime.ClearAll();
             _fx?.Unsubscribe(); // события снаряда статические — обязательно отписываемся
+            _sfx?.Unsubscribe();
         }
 
         void Start()
@@ -90,6 +96,11 @@ namespace CatTanks
             {
                 if (GameInput.RegeneratePressed()) LoadLevel(0);
                 if (GameInput.NextLevelPressed()) CompleteLevel();
+                if (GameInput.DebugUltimatePressed() && Current != null && Current.Player != null)
+                {
+                    var ult = Current.Player.GetComponent<PlayerUltimate>();
+                    if (ult != null) ult.DebugAddCharge();
+                }
             }
         }
 
@@ -119,14 +130,14 @@ namespace CatTanks
         {
             if (paused && State != GameState.Playing) return;
             if (!paused && State != GameState.Paused) return;
-            Time.timeScale = paused ? 0f : 1f;
+            GameTime.Paused = paused;
             SetState(paused ? GameState.Paused : GameState.Playing);
         }
 
         public void GoToMenu()
         {
             Teardown();
-            Time.timeScale = 1f;
+            GameTime.ClearAll();
             SetState(GameState.Menu);
         }
 
@@ -149,7 +160,7 @@ namespace CatTanks
                 return;
             }
             SetState(GameState.LevelComplete);
-            Time.timeScale = 0f; // замираем, пока висит надпись
+            GameTime.Set(this, 0f); // замираем, пока висит надпись
             OnLevelCompleted?.Invoke(Current);
             StartCoroutine(AfterRealtime(levelCompleteDelay, NextLevel));
         }
@@ -160,16 +171,18 @@ namespace CatTanks
         void LoadLevel(int seed)
         {
             Teardown();
-            Time.timeScale = 1f;
+            GameTime.ClearAll();
             Health.FriendlyFire = friendlyFire;
+            Bullet.BulletsCollide = bulletsCollide;
 
-            var data = BspLevelGenerator.Generate(Settings, seed, Difficulty);
+            var data = BspLevelGenerator.Generate(Settings, seed, Difficulty, _spawner.SpawnRules());
             var root = _builder.Build(data);
             _fx.SetRoot(root);
             var ctx = new LevelContext
             {
                 Data = data,
                 Pathfinder = new GridPathfinder(data),
+                Builder = _builder,
                 Root = root,
                 LevelNumber = LevelNumber,
                 Difficulty = Difficulty,
@@ -250,16 +263,9 @@ namespace CatTanks
         // Пустые ссылки на ассеты-настройки подставляем сами — первый подходящий ассет в проекте.
         void OnValidate()
         {
-            if (config == null) config = FindAsset<LevelConfig>();
-            if (fx == null) fx = FindAsset<FxLibrary>();
-        }
-
-        T FindAsset<T>() where T : ScriptableObject
-        {
-            var guids = UnityEditor.AssetDatabase.FindAssets("t:" + typeof(T).Name);
-            if (guids.Length == 0) return null;
-            UnityEditor.EditorUtility.SetDirty(this);
-            return UnityEditor.AssetDatabase.LoadAssetAtPath<T>(UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]));
+            bool changed = EditorAssetLookup.FillIfEmpty(ref config);
+            changed |= EditorAssetLookup.FillIfEmpty(ref fx);
+            if (changed) UnityEditor.EditorUtility.SetDirty(this);
         }
 #endif
     }

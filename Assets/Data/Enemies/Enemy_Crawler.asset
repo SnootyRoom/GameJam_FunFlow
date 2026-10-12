@@ -12,7 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7beb516551fd52641adb6b232d8f1a4e, type: 3}
   m_Name: Enemy_Crawler
   m_EditorClassIdentifier: 
-  type: 0
   prefab: {fileID: 0}
   footprint: 1
   maxHp: 1
@@ -29,3 +28,10 @@ MonoBehaviour:
   size: 0.7
   sprite: {fileID: 4012946058252781560, guid: dcaa6aad933605244a3e0c264fa5d866, type: 3}
   spriteFacing: 90
+  moves: 1
+  shoots: 0
+  spawnOnLevels: 1
+  placement: 0
+  spawnWeight: 1
+  minDifficulty: 1
+  maxPerLevel: 0

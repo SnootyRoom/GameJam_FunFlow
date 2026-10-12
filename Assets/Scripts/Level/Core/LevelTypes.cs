@@ -13,11 +13,35 @@ namespace CatTanks.Level
         Cover = 2,  // укрытие внутри зоны (физически это тоже стена)
     }
 
-    public enum EnemyType
+    /// <summary>Где генератор ставит врага.</summary>
+    public enum SpawnPlacement
     {
-        Crawler,  // ползун: бежит к игроку и таранит
-        Shooter,  // стрелок: стоит у укрытия, стреляет рикошетом
-        Crab,     // планшет-краб: страж у точки Б
+        Anywhere,   // где угодно (с перевесом ближе к выходу)
+        NearCover,  // рядом с укрытием — для стрелков
+        GuardExit,  // страж в 3–6 клетках от выхода, ставится первым
+    }
+
+    /// <summary>
+    /// Правило появления врага. Генератор не знает про конкретных врагов — только про правила;
+    /// сами правила берутся из EnemyDefinition (Unity-слой), id = имя ассета врага.
+    /// </summary>
+    [Serializable]
+    public class EnemySpawnRule
+    {
+        public string id;
+        public SpawnPlacement placement = SpawnPlacement.Anywhere;
+        public float weight = 1f;          // относительная частота среди обычных врагов
+        public int minDifficulty = 1;      // с какой сложности появляется
+        public int maxPerLevel = 0;        // 0 — без ограничения (для стражей 0 = один)
+        public int footprint = 1;          // сколько клеток занимает по стороне
+
+        /// <summary>Набор по умолчанию — если правила не переданы (тесты, предпросмотр без спавнера).</summary>
+        public static List<EnemySpawnRule> Defaults() => new List<EnemySpawnRule>
+        {
+            new EnemySpawnRule { id = "Enemy_Crawler" },
+            new EnemySpawnRule { id = "Enemy_Shooter", placement = SpawnPlacement.NearCover },
+            new EnemySpawnRule { id = "Enemy_Crab", placement = SpawnPlacement.GuardExit, minDifficulty = 2, maxPerLevel = 1, footprint = 2 },
+        };
     }
 
     /// <summary>Координата клетки на сетке.</summary>
@@ -52,9 +76,10 @@ namespace CatTanks.Level
     [Serializable]
     public struct EnemySpawn
     {
-        public GridPos pos;
-        public EnemyType type;
-        public EnemySpawn(GridPos p, EnemyType t) { pos = p; type = t; }
+        public GridPos pos;         // для больших врагов — левая нижняя клетка площадки
+        public string id;           // id правила = имя ассета врага
+        public int footprint;
+        public EnemySpawn(GridPos p, string id, int footprint) { pos = p; this.id = id; this.footprint = footprint; }
     }
 
     /// <summary>
@@ -91,7 +116,7 @@ namespace CatTanks.Level
         public int enemiesPerDifficulty = 2;   // + столько врагов за каждую ступень сложности выше первой
         public int minEnemyDistanceFromStart = 10; // в шагах по полу
         public int minEnemySpacing = 3;
-        public bool spawnCrabGuard = true; // краб-страж у точки Б (со сложности 2)
+        public bool spawnGuards = true;    // ставить стражей у точки Б (враги с правилом GuardExit)
         public bool restLeaf = true;       // одна зона на маршруте без врагов
 
         public int maxAttempts = 30;       // попыток перегенерации, если уровень не прошёл проверку

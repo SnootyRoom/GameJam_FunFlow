@@ -69,11 +69,49 @@ namespace CatTanks.UI
                             t.exitArrow != null ? Color.white : new Color(1f, 0.85f, 0.2f));
             v.exitArrow.gameObject.SetActive(false);
 
+            BuildUltWidget(rt, v);
+
             // прицел — последним, поверх остального HUD
             v.crosshair = UIFactory.Rect(rt, "Crosshair", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(36, 36));
             v.crosshair.pivot = new Vector2(0.5f, 0.5f);
             UIFactory.Image(v.crosshair, Or(t.crosshair, Or(t.ring, Prims.Ring)), t.crosshair != null ? Color.white : t.accent);
             return v;
+        }
+
+        /// <summary>Ульта «Орех» в левом нижнем углу: иконка, клавиша, квадратики-заряды и полоска до следующего заряда.</summary>
+        void BuildUltWidget(RectTransform hud, HudView v)
+        {
+            var root = UIFactory.Rect(hud, "Ultimate", Vector2.zero, new Vector2(32, 32), new Vector2(280, 96));
+            v.ultRoot = root;
+
+            var icon = UIFactory.Rect(root, "Icon", Vector2.zero, Vector2.zero, new Vector2(96, 96));
+            icon.pivot = new Vector2(0.5f, 0.5f);
+            icon.anchoredPosition = new Vector2(48, 48); // масштаб «дыхания» — от центра
+            v.ultIcon = UIFactory.Image(icon, Or(t.ultIcon, Or(t.circle, Prims.Circle)), Color.white);
+            v.ultIcon.preserveAspect = true;
+
+            v.ultKey = UIFactory.Text(UIFactory.Rect(root, "Key", Vector2.zero, new Vector2(70, -2), new Vector2(40, 32)),
+                                      _font, "Q", 24, TextAnchor.LowerRight, t.textColor);
+            UIFactory.HardShadow(v.ultKey, 3, new Color(0, 0, 0, 0.9f));
+
+            v.ultPipOn = t.accent;
+            v.ultPips = new Image[3];
+            for (int i = 0; i < v.ultPips.Length; i++)
+            {
+                var pip = UIFactory.Rect(root, "Charge" + i, Vector2.zero, new Vector2(112 + i * 30, 48), new Vector2(22, 22));
+                v.ultPips[i] = UIFactory.Image(pip, null, v.ultPipOff);
+                var outline = pip.gameObject.AddComponent<Outline>(); // пиксельная рамка
+                outline.effectColor = new Color(0, 0, 0, 0.85f);
+                outline.effectDistance = new Vector2(3, -3);
+            }
+
+            var bar = UIFactory.Rect(root, "Bar", Vector2.zero, new Vector2(112, 18), new Vector2(150, 14));
+            UIFactory.Image(bar, null, new Color(0f, 0f, 0f, 0.55f));
+            var fill = UIFactory.Stretch(bar, "Fill");
+            fill.anchorMax = new Vector2(0f, 1f);
+            UIFactory.Image(fill, null, t.accent);
+            v.ultBarFill = fill;
+            root.gameObject.SetActive(false); // покажет GameUI, если у танка есть ульта
         }
 
         // ------------------------------------------------------------------ Баннер
@@ -150,8 +188,8 @@ namespace CatTanks.UI
             v.quit = ColumnButton(main, 2, t.exitButton, "Quit");
 
             // подсказка по управлению — одной строкой в левом нижнем углу
-            var hint = UIFactory.Text(UIFactory.Rect(main, "Hint", Vector2.zero, new Vector2(40, 28), new Vector2(1300, 32)),
-                                      _font, t.controlsHint, 16, TextAnchor.LowerLeft, Color.white);
+            var hint = UIFactory.Text(UIFactory.Rect(main, "Hint", new Vector2(0.5f, 0), new Vector2(0, 28), new Vector2(1800, 32)),
+                                      _font, t.controlsHint, 16, TextAnchor.LowerCenter, Color.white);
             UIFactory.HardShadow(hint, 3, new Color(0, 0, 0, 0.8f));
 
             // Настройки — на месте главной колонки, в том же стиле. Новые пункты добавляй сюда (или прямо в префаб).
@@ -160,7 +198,9 @@ namespace CatTanks.UI
             MenuTitle(settings, "Settings");
             v.fullscreen = ColumnButton(settings, 0, null, v.fullscreenOn, 24);
             v.fullscreenLabel = v.fullscreen.label;
-            v.back = ColumnButton(settings, 1, null, "Back");
+            v.sound = ColumnButton(settings, 1, null, v.soundOn, 24);
+            v.soundLabel = v.sound.label;
+            v.back = ColumnButton(settings, 2, null, "Back");
             settings.gameObject.SetActive(false);
             return v;
         }

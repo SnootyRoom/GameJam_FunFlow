@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: UiTheme
   m_EditorClassIdentifier: 
   gameTitle: Cat in a Tank
-  controlsHint: WASD - move   Mouse - aim   LMB - fire   RMB - machine gun   Esc - pause
+  controlsHint: WASD - move   Mouse - aim   LMB - fire   RMB - machine gun   Q - nut strike   Esc - pause
   font: {fileID: 12800000, guid: 4faf17a37e4b4fa7aa8ab617039bb50d, type: 3}
   logo: {fileID: 0}
   menuBackground: {fileID: -4550388572695364134, guid: 8002c5b8ecbbc8c45bcbd3a8df6801e1, type: 3}
@@ -22,6 +22,7 @@ MonoBehaviour:
   exitArrow: {fileID: 0}
   crosshair: {fileID: 0}
   panelSprite: {fileID: 0}
+  ultIcon: {fileID: 21300000, guid: 89df69d1d22b4116bd5bd0f2a15fd1b4, type: 3}
   buttonSprite: {fileID: -4029351698569776409, guid: 48ccbffb1e8fc894f8f3c01a177edeef, type: 3}
   buttonCornerTopLeft: {fileID: -3500759553075992606, guid: 48ccbffb1e8fc894f8f3c01a177edeef, type: 3}
   buttonCornerBottomRight: {fileID: -6145263786166491265, guid: 48ccbffb1e8fc894f8f3c01a177edeef, type: 3}

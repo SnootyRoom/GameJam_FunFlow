@@ -11,7 +11,7 @@ namespace CatTanks.UI
     {
         [Header("Тексты")]
         public string gameTitle = "Cat in a Tank";
-        public string controlsHint = "WASD - move   Mouse - aim   LMB - fire   RMB - machine gun   Esc - pause";
+        public string controlsHint = "WASD - move   Mouse - aim   LMB - fire   RMB - machine gun   Q - nut strike   Esc - pause";
 
         [Header("Шрифт и картинки художника (пусто = примитивы)")]
         public Font font;
@@ -22,6 +22,7 @@ namespace CatTanks.UI
         public Sprite exitArrow;              // 48×48, смотрит вправо
         public Sprite crosshair;              // 32×32
         public Sprite panelSprite;            // полоса баннера «Level Complete»
+        public Sprite ultIcon;                // иконка ульты в HUD (Assets/Art/Ult/walnut)
 
         [Header("Текстовая кнопка (пауза, настройки)")]
         [Tooltip("Плашка кнопки (start_button_1). Уголки из той же картинки подставятся сами")]

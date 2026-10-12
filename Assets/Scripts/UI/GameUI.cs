@@ -18,9 +18,13 @@ namespace CatTanks.UI
         public UiTheme fallbackTheme;
 
         [Header("Тексты")]
-        public string exitBlockedText = "Deal with all the phones first!";
+        public string exitBlockedText = "Squash all the bugs first!";
 
         GameUIView _ui;
+        PlayerUltimate _ult;
+
+        const string SoundPref = "sound_on";
+        const float SoundVolume = 0.7f;
 
         // ------------------------------------------------------------------ Жизненный цикл
 
@@ -38,6 +42,7 @@ namespace CatTanks.UI
             if (showMainMenu) flow.autoStart = false; // ждём кнопку «Play»
 
             UIFactory.EnsureEventSystem();
+            Sfx.MasterVolume = PlayerPrefs.GetInt(SoundPref, 1) == 1 ? SoundVolume : 0f;
             if (uiPrefab != null) _ui = Instantiate(uiPrefab, transform);
             else
             {
@@ -74,6 +79,7 @@ namespace CatTanks.UI
             flow.OnPlayerHpChanged -= _ui.hud.SetHearts;
             flow.OnExitBlocked -= HandleExitBlocked;
             flow.OnEnemyCountChanged -= _ui.hud.SetEnemies;
+            BindUltimate(null);
         }
 
         void Update()
@@ -100,6 +106,14 @@ namespace CatTanks.UI
                 m.SetFullscreenLabel(full);
             });
             m.SetFullscreenLabel(Screen.fullScreen);
+            m.sound.onActivated.AddListener(() =>
+            {
+                bool on = Sfx.MasterVolume <= 0.001f;
+                Sfx.MasterVolume = on ? SoundVolume : 0f;
+                PlayerPrefs.SetInt(SoundPref, on ? 1 : 0);
+                m.SetSoundLabel(on);
+            });
+            m.SetSoundLabel(Sfx.MasterVolume > 0.001f);
 
             var p = _ui.pause;
             p.resume.onActivated.AddListener(() => flow.Pause(false));
@@ -126,11 +140,30 @@ namespace CatTanks.UI
             _ui.hud.SetLevel(ctx.LevelNumber);
             _ui.hud.SetEnemies(ctx.AliveEnemyCount());
             if (ctx.PlayerHealth != null) _ui.hud.SetHearts(ctx.PlayerHealth.Hp, ctx.PlayerHealth.maxHp);
+            BindUltimate(ctx.Player != null ? ctx.Player.GetComponent<PlayerUltimate>() : null);
         }
 
         void HandleLevelCompleted(LevelContext ctx) => _ui.banner.ShowLevelComplete(ctx.LevelNumber);
         void HandlePlayerKilled(LevelContext ctx) => _ui.banner.ShowDeath();
         void HandleExitBlocked() => _ui.hud.ShowToast(exitBlockedText, 1.5f);
+
+        // ------------------------------------------------------------------ Ульта
+
+        /// <summary>Танк создаётся заново на каждом уровне — переподписываемся на его ульту.</summary>
+        void BindUltimate(PlayerUltimate ult)
+        {
+            if (_ult != null) _ult.Changed -= RefreshUltimate;
+            _ult = ult;
+            if (_ult != null) _ult.Changed += RefreshUltimate;
+            RefreshUltimate();
+        }
+
+        void RefreshUltimate()
+        {
+            if (_ui == null) return;
+            if (_ult == null) { _ui.hud.SetUltimate(false, 0, 0, 0f, false); return; }
+            _ui.hud.SetUltimate(true, _ult.Charges, _ult.settings.maxCharges, _ult.Progress01, _ult.CanActivate);
+        }
 
 #if UNITY_EDITOR
         // Пустые ссылки подставляем сами: префаб холста и тему из проекта.
@@ -141,15 +174,7 @@ namespace CatTanks.UI
                 var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(UiPaths.CanvasPrefab);
                 if (prefab != null) { uiPrefab = prefab.GetComponent<GameUIView>(); UnityEditor.EditorUtility.SetDirty(this); }
             }
-            if (fallbackTheme == null)
-            {
-                var guids = UnityEditor.AssetDatabase.FindAssets("t:" + nameof(UiTheme));
-                if (guids.Length > 0)
-                {
-                    fallbackTheme = UnityEditor.AssetDatabase.LoadAssetAtPath<UiTheme>(UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]));
-                    UnityEditor.EditorUtility.SetDirty(this);
-                }
-            }
+            if (EditorAssetLookup.FillIfEmpty(ref fallbackTheme)) UnityEditor.EditorUtility.SetDirty(this);
         }
 #endif
     }

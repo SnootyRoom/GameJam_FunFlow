@@ -25,6 +25,16 @@ namespace CatTanks.UI
         public Color heartColor = new Color(0.95f, 0.3f, 0.35f);
         public Color heartEmptyColor = new Color(0.3f, 0.3f, 0.3f, 0.6f);
 
+        [Header("Ульта «Орех»")]
+        public RectTransform ultRoot;
+        public Image ultIcon;
+        public Text ultKey;
+        public Image[] ultPips;               // заряды
+        public RectTransform ultBarFill;      // полоска до следующего заряда (anchorMax.x = прогресс)
+        public Color ultPipOn = new Color(1f, 0.8f, 0.3f);
+        public Color ultPipOff = new Color(0f, 0f, 0f, 0.45f);
+        public Color ultIconInactive = new Color(1f, 1f, 1f, 0.4f);
+
         [Header("Тексты ({0} — число)")]
         public string levelFormat = "Level {0}";
         public string enemiesFormat = "Enemies: {0}";
@@ -64,9 +74,31 @@ namespace CatTanks.UI
             }
         }
 
+        bool _ultReady;
+
+        /// <summary>Индикатор ульты. charges/max — заряды, progress — до следующего, usable — можно применить сейчас.</summary>
+        public void SetUltimate(bool visible, int charges, int max, float progress, bool usable)
+        {
+            if (ultRoot == null) return;
+            ultRoot.gameObject.SetActive(visible);
+            if (!visible) return;
+            for (int i = 0; i < ultPips.Length; i++)
+            {
+                ultPips[i].gameObject.SetActive(i < max);
+                ultPips[i].color = i < charges ? ultPipOn : ultPipOff;
+            }
+            if (ultBarFill != null) ultBarFill.anchorMax = new Vector2(Mathf.Clamp01(progress), 1f);
+            _ultReady = usable;
+            ultIcon.color = usable ? Color.white : ultIconInactive;
+            if (!usable) ultIcon.rectTransform.localScale = Vector3.one;
+        }
+
         void Update()
         {
             if (toast.gameObject.activeSelf && Time.unscaledTime >= _toastUntil) toast.gameObject.SetActive(false);
+            // готовая ульта «дышит» — заметно краем глаза
+            if (_ultReady && ultIcon != null)
+                ultIcon.rectTransform.localScale = Vector3.one * (1f + 0.08f * (0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 6f)));
         }
 
         /// <summary>Стрелка у края экрана в сторону выхода; прячется, когда выход виден.</summary>

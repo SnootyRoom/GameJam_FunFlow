@@ -29,6 +29,30 @@ namespace CatTanks
         public Color background = new Color(0.16f, 0.17f, 0.19f);
 
         Camera _cam;
+        Vector3 _base;                       // положение без тряски
+
+        static float _shakeStrength, _shakeUntil, _shakeDuration;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() { _shakeStrength = _shakeUntil = _shakeDuration = 0f; }
+
+        /// <summary>Тряхнуть камеру (взрыв ореха и т.п.). strength — амплитуда в клетках. Сильнее перебивает слабее.</summary>
+        public static void Shake(float strength, float duration)
+        {
+            if (Time.unscaledTime < _shakeUntil && strength < _shakeStrength) return;
+            _shakeStrength = strength;
+            _shakeDuration = Mathf.Max(0.01f, duration);
+            _shakeUntil = Time.unscaledTime + duration;
+        }
+
+        static Vector3 ShakeOffset()
+        {
+            float left = _shakeUntil - Time.unscaledTime;
+            if (left <= 0f) return Vector3.zero;
+            float k = _shakeStrength * left / _shakeDuration; // затухает к концу
+            return new Vector3(Random.Range(-k, k), Random.Range(-k, k), 0f);
+        }
+
         LevelContext _ctx;
 
         void Awake()
@@ -43,7 +67,9 @@ namespace CatTanks
         {
             _ctx = ctx;
             ApplyZoom();
-            if (_ctx.Player != null) transform.position = Clamp(_ctx.Player.transform.position); // сразу к игроку
+            if (_ctx.Player != null) _base = Clamp(_ctx.Player.transform.position); // сразу к игроку
+            else _base = transform.position;
+            transform.position = _base;
             PublishView();
         }
 
@@ -54,7 +80,8 @@ namespace CatTanks
             Vector3 target = _ctx.Player != null && zoom != ZoomMode.FitLevel
                 ? Clamp(_ctx.Player.transform.position)
                 : LevelCenter();
-            transform.position = Vector3.Lerp(transform.position, target, 1f - Mathf.Exp(-smooth * Time.unscaledDeltaTime));
+            _base = Vector3.Lerp(_base, target, 1f - Mathf.Exp(-smooth * Time.unscaledDeltaTime));
+            transform.position = _base + ShakeOffset();
             PublishView();
         }
 

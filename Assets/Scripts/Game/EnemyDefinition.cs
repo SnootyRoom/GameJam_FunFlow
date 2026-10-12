@@ -1,6 +1,7 @@
-// Описание типа врага — ЕДИНСТВЕННОЕ место, где настраивается враг: вид, здоровье, движение, стрельба, ИИ.
+// Описание врага — ЕДИНСТВЕННОЕ место, где настраивается враг: вид, поведение, правило появления, баланс, ИИ.
 // Ассеты лежат в Assets/Data/Enemies (Create → CatTanks → Enemy Definition), спавнер берёт их из своего списка.
-// Сколько врагов и где ставить — это правила уровня, они в LevelConfig (Assets/Data).
+// Новый враг = новый ассет, код трогать не нужно. id врага = имя ассета.
+// Общее число врагов на уровне — в LevelConfig (Assets/Data).
 // Параметры отсюда ПЕРЕЗАПИСЫВАЮТ значения на префабе и компонентах — правь баланс здесь.
 using CatTanks.Level;
 using UnityEngine;
@@ -10,11 +11,37 @@ namespace CatTanks
     [CreateAssetMenu(menuName = "CatTanks/Enemy Definition", fileName = "Enemy_")]
     public class EnemyDefinition : ScriptableObject
     {
-        public EnemyType type;
         [Tooltip("Пусто = враг собирается из спрайта ниже (или из примитивов, если и спрайта нет)")]
         public GameObject prefab;
         [Tooltip("Сколько клеток занимает по стороне (краб — 2). Клетка спавна — левая нижняя")]
         [Min(1)] public int footprint = 1;
+
+        [Header("Поведение (для врага без префаба)")]
+        [Tooltip("Бегает к игроку и таранит (EnemyCrawler)")]
+        public bool moves = true;
+        [Tooltip("Стреляет рикошетом (EnemyShooter)")]
+        public bool shoots = false;
+
+        [Header("Появление на уровне")]
+        [Tooltip("Ставить автоматически при генерации. Выключи — враг появится только из кода (подкрепления и т.п.)")]
+        public bool spawnOnLevels = true;
+        public SpawnPlacement placement = SpawnPlacement.Anywhere;
+        [Tooltip("Относительная частота среди обычных врагов")]
+        public float spawnWeight = 1f;
+        [Range(1, 5)] public int minDifficulty = 1;
+        [Tooltip("Максимум на уровень. 0 — без ограничения (у стража 0 = один)")]
+        public int maxPerLevel = 0;
+
+        /// <summary>Правило для генератора уровней (ядро ничего не знает про ассеты — только про эти данные).</summary>
+        public EnemySpawnRule ToSpawnRule() => new EnemySpawnRule
+        {
+            id = name,
+            placement = placement,
+            weight = spawnWeight,
+            minDifficulty = minDifficulty,
+            maxPerLevel = maxPerLevel,
+            footprint = footprint,
+        };
 
         [Header("Вид без префаба")]
         [Tooltip("Спрайт врага. Пусто = заглушка из примитивов цвета color")]

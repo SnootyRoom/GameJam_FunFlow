@@ -33,5 +33,7 @@ namespace CatTanks
         public Effect targetHit = new Effect { size = 0.9f, duration = 0.2f, growTo = 1.3f };
         [Tooltip("Враг уничтожен")]
         public Effect enemyDeath = new Effect { size = 1.4f, duration = 0.35f, growTo = 1.6f };
+        [Tooltip("Удар ореха (ульта). Размер умножается на радиус удара")]
+        public Effect nutImpact = new Effect { size = 1.2f, duration = 0.5f, growTo = 1.8f };
     }
 }

@@ -43,6 +43,46 @@ namespace CatTanks
 #endif
         }
 
+        /// <summary>Q нажата в этом кадре — начать прицеливание ульты.</summary>
+        public static bool UltimatePressed()
+        {
+#if ENABLE_INPUT_SYSTEM
+            var k = Keyboard.current;
+            return k != null && k.qKey.wasPressedThisFrame;
+#else
+            return Input.GetKeyDown(KeyCode.Q);
+#endif
+        }
+
+        /// <summary>Q зажата — продолжаем целиться; отпустили — сброс ореха.</summary>
+        public static bool UltimateHeld()
+        {
+#if ENABLE_INPUT_SYSTEM
+            var k = Keyboard.current;
+            return k != null && k.qKey.isPressed;
+#else
+            return Input.GetKey(KeyCode.Q);
+#endif
+        }
+
+        /// <summary>U — +1 заряд ульты (для отладки).</summary>
+        public static bool DebugUltimatePressed()
+        {
+#if ENABLE_INPUT_SYSTEM
+            var k = Keyboard.current;
+            return k != null && k.uKey.wasPressedThisFrame;
+#else
+            return Input.GetKeyDown(KeyCode.U);
+#endif
+        }
+
+        /// <summary>Курсор в мировых координатах (через главную камеру).</summary>
+        public static Vector2 MouseWorld()
+        {
+            var cam = Camera.main;
+            return cam != null ? (Vector2)cam.ScreenToWorldPoint(MouseScreen()) : Vector2.zero;
+        }
+
         public static Vector2 MouseScreen()
         {
 #if ENABLE_INPUT_SYSTEM

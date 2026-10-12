@@ -17,6 +17,9 @@ namespace CatTanks
         /// <summary>Ранят ли снаряды своих. Задаётся в GameFlow (галочка friendlyFire).</summary>
         public static bool FriendlyFire = true;
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() => FriendlyFire = true;
+
         public int Hp { get; private set; }
         public bool IsDead => Hp <= 0;
         public bool IsPlayer => team == Team.Player;
@@ -48,9 +51,18 @@ namespace CatTanks
             for (int i = 0; i < _renderers.Length; i++) _colors[i] = _renderers[i].color;
         }
 
-        public void Damage(int amount)
+        /// <summary>Чья команда нанесла последний урон (null — неизвестно). Нужно, например, ульте: заряд дают убийства игрока.</summary>
+        public Team? LastAttacker { get; private set; }
+        /// <summary>Последний урон нанесла ульта (её собственные убийства ульту не заряжают).</summary>
+        public bool LastHitByUltimate { get; private set; }
+
+        public void Damage(int amount) => Damage(amount, null, false);
+
+        public void Damage(int amount, Team? attacker, bool byUltimate = false)
         {
             if (IsDead || Time.time < _invulUntil) return;
+            LastAttacker = attacker;
+            LastHitByUltimate = byUltimate;
             Hp -= amount;
             _invulUntil = Time.time + invulnerableAfterHit;
             _flashUntil = Time.time + 0.08f;

@@ -30,8 +30,21 @@ namespace CatTanks
         /// <summary>Размер спрайта снаряда в юнитах (по большей стороне), если он задан спрайтом.</summary>
         public const float SpriteSize = 0.32f;
 
+        /// <summary>Снаряды сбивают друг друга. Задаётся в GameFlow (галочка bulletsCollide).</summary>
+        public static bool BulletsCollide = true;
+
         static readonly List<Bullet> Alive = new List<Bullet>();
         float _dieAt;
+        bool _dead, _checkSpawn;
+
+        // Статика переживает перезапуск Play Mode, если в Unity выключена перезагрузка домена — чистим явно.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics()
+        {
+            Alive.Clear();
+            Fired = null; Bounced = null; HitTarget = null; HitWall = null;
+            BulletsCollide = true;
+        }
 
         /// <summary>Сколько снарядов этого владельца сейчас в полёте (для лимита как в Wii Tanks).</summary>
         public static int CountOwnedBy(GameObject owner)
@@ -67,6 +80,7 @@ namespace CatTanks
             b.speed = speed;
             b.maxBounces = maxBounces;
             b.SetDirection(direction);
+            b._checkSpawn = true; // упор в стену/врага проверим в первом кадре — когда стрелок уже выставил урон
             Fired?.Invoke(b);
             return b;
         }
@@ -80,11 +94,68 @@ namespace CatTanks
             transform.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(Direction.y, Direction.x) * Mathf.Rad2Deg);
         }
 
+        /// <summary>
+        /// Выстрел в упор: ствол уже в стене или во враге. Стена — снаряд разбивается (а не отскакивает в стрелка),
+        /// враг — получает попадание. true — снаряд закончился.
+        /// </summary>
+        bool ResolveSpawnOverlap()
+        {
+            Vector2 pos = transform.position;
+            var blocker = Ricochet.SpawnBlocker(pos, radius, Owner != null ? Owner.transform : null);
+            if (blocker == null) return false;
+            var hp = blocker.GetComponentInParent<Health>();
+            if (hp != null)
+            {
+                if (Health.CanHurt(Team, hp)) hp.Damage(damage, Team);
+                HitTarget?.Invoke(pos, hp);
+            }
+            else HitWall?.Invoke(pos);
+            Kill();
+            return true;
+        }
+
+        /// <summary>
+        /// Снаряды сбивают друг друга (как в Wii Tanks). Проверяем «на пролёт» за этот кадр, а не только текущие
+        /// позиции, — иначе встречные быстрые снаряды проскакивают друг сквозь друга между кадрами.
+        /// Снаряды одного стрелка друг друга не сбивают.
+        /// </summary>
+        bool Clash(float step)
+        {
+            Vector2 p = transform.position, v = Direction * step;
+            foreach (var other in Alive)
+            {
+                if (other == this || other == null || other._dead || other.Owner == Owner) continue;
+                Vector2 q = other.transform.position, w = other.Direction * (other.speed * Time.deltaTime);
+                Vector2 d0 = q - p, dv = w - v;
+                float t = dv.sqrMagnitude > 1e-6f ? Mathf.Clamp01(-Vector2.Dot(d0, dv) / dv.sqrMagnitude) : 0f;
+                Vector2 gap = d0 + dv * t;
+                if (gap.magnitude >= radius + other.radius) continue;
+                HitWall?.Invoke(p + v * t + gap * 0.5f); // эффект и звук — как удар о стену
+                other.Kill();
+                Kill();
+                return true;
+            }
+            return false;
+        }
+
+        void Kill()
+        {
+            _dead = true;
+            Destroy(gameObject);
+        }
+
         void Update()
         {
-            if (Time.time > _dieAt) { Destroy(gameObject); return; }
+            if (_dead) return;
+            if (Time.time > _dieAt) { Kill(); return; }
+            if (_checkSpawn)
+            {
+                _checkSpawn = false;
+                if (ResolveSpawnOverlap()) return;
+            }
 
             float remaining = speed * Time.deltaTime;
+            if (BulletsCollide && Clash(remaining)) return;
             // несколько итераций — если в одном кадре снаряд отскочил в угол и сразу ещё раз
             for (int guard = 0; guard < 4 && remaining > 0f; guard++)
             {
@@ -100,16 +171,16 @@ namespace CatTanks
                 var hp = hit.collider.GetComponentInParent<Health>();
                 if (hp != null)
                 {
-                    if (Health.CanHurt(Team, hp)) hp.Damage(damage); // без friendly fire снаряд просто гаснет о своего
+                    if (Health.CanHurt(Team, hp)) hp.Damage(damage, Team); // без friendly fire снаряд просто гаснет о своего
                     HitTarget?.Invoke(hit.centroid, hp);
-                    Destroy(gameObject);
+                    Kill();
                     return;
                 }
 
                 if (Bounces >= maxBounces)
                 {
                     HitWall?.Invoke(hit.centroid);
-                    Destroy(gameObject);
+                    Kill();
                     return;
                 }
 
