@@ -522,19 +522,23 @@ MonoBehaviour:
   showMainMenu: 1
   gameTitle: "\u041A\u043E\u0442 \u0432 \u0442\u0430\u043D\u043A\u0435"
   controlsHint: "WASD \u2014 \u0435\u0445\u0430\u0442\u044C   \u041C\u044B\u0448\u044C \u2014 \u0446\u0435\u043B\u0438\u0442\u044C\u0441\u044F   \u041B\u041A\u041C \u2014 \u043E\u0433\u043E\u043D\u044C   Esc \u2014 \u043F\u0430\u0443\u0437\u0430"
-  font: {fileID: 0}
+  font: {fileID: 12800000, guid: 4faf17a37e4b4fa7aa8ab617039bb50d, type: 3}
   logo: {fileID: 0}
   menuBackground: {fileID: 7708467723429685855, guid: 3d773410ce32dc3498e771cbae6e6a63, type: 3}
   heartFull: {fileID: 0}
   heartEmpty: {fileID: 0}
   exitArrow: {fileID: 0}
   crosshair: {fileID: 0}
-  buttonSprite: {fileID: 0}
+  buttonSprite: {fileID: -4029351698569776409, guid: 48ccbffb1e8fc894f8f3c01a177edeef, type: 3}
+  buttonCornerTopLeft: {fileID: -3500759553075992606, guid: 48ccbffb1e8fc894f8f3c01a177edeef, type: 3}
+  buttonCornerBottomRight: {fileID: -6145263786166491265, guid: 48ccbffb1e8fc894f8f3c01a177edeef, type: 3}
   panelSprite: {fileID: 0}
-  accent: {r: 1, g: 0.65, b: 0.25, a: 1}
+  accent: {r: 0.5372549, g: 0.05490196, b: 0.28235295, a: 1}
   buttonColor: {r: 0.22, g: 0.24, b: 0.28, a: 0.95}
   textColor: {r: 1, g: 1, b: 1, a: 1}
   dimColor: {r: 0.11698109, g: 0.107490174, b: 0.107490174, a: 0.6}
+  menuPanelColor: {r: 1, g: 1, b: 1, a: 0.55}
+  menuHintColor: {r: 0.12, g: 0.12, b: 0.15, a: 1}
   heartColor: {r: 0.95, g: 0.3, b: 0.35, a: 1}
 --- !u!4 &933727912
 Transform:

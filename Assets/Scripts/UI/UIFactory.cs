@@ -104,6 +104,79 @@ namespace CatTanks.UI
             return t;
         }
 
+        /// <summary>Жёсткая тень без размытия — для пиксельного текста.</summary>
+        public static void HardShadow(Text t, float px, Color color)
+        {
+            var s = t.GetComponent<Shadow>();
+            if (s == null) s = t.gameObject.AddComponent<Shadow>();
+            s.effectColor = color;
+            s.effectDistance = new Vector2(px, -px);
+        }
+
+        // ------------------------------------------------------------------ Пиксельные спрайты
+
+        static Sprite _pixelPanel, _pixelArrow;
+
+        /// <summary>
+        /// Пиксельная панель 12×12 для 9-slice: ступенчатые углы, рамка 1 пиксель непрозрачная, заливка полупрозрачная.
+        /// Цвет и общая прозрачность задаются цветом Image.
+        /// </summary>
+        public static Sprite PixelPanelSprite()
+        {
+            if (_pixelPanel != null) return _pixelPanel;
+            const int n = 12;
+            var px = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    int dx = Mathf.Min(x, n - 1 - x), dy = Mathf.Min(y, n - 1 - y);
+                    byte a = dx + dy < 2 ? (byte)0                                   // срезанный угол
+                           : dx == 0 || dy == 0 || dx + dy == 2 ? (byte)255           // рамка
+                           : (byte)150;                                                // заливка
+                    px[y * n + x] = new Color32(255, 255, 255, a);
+                }
+            _pixelPanel = MakePixelSprite("PixelPanel", n, n, px, new Vector4(4, 4, 4, 4));
+            return _pixelPanel;
+        }
+
+        /// <summary>Пиксельная стрелка-курсор 6×9, смотрит вправо.</summary>
+        public static Sprite PixelArrowSprite()
+        {
+            if (_pixelArrow != null) return _pixelArrow;
+            const int w = 6, h = 9;
+            var px = new Color32[w * h];
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                    px[y * w + x] = new Color32(255, 255, 255, (byte)(x <= 5 - Mathf.Abs(y - 4) ? 255 : 0));
+            _pixelArrow = MakePixelSprite("PixelArrow", w, h, px, Vector4.zero);
+            return _pixelArrow;
+        }
+
+        static Sprite MakePixelSprite(string name, int w, int h, Color32[] px, Vector4 border)
+        {
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Point, // никакого сглаживания — чёткие пиксели при любом масштабе
+                wrapMode = TextureWrapMode.Clamp,
+                name = name,
+                hideFlags = HideFlags.DontSave,
+            };
+            tex.SetPixels32(px);
+            tex.Apply();
+            var s = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100, 0, SpriteMeshType.FullRect, border);
+            s.hideFlags = HideFlags.DontSave;
+            return s;
+        }
+
+        /// <summary>Пиксельная подложка. pixelScale — сколько экранных пикселей (при 1920×1080) на пиксель рамки.</summary>
+        public static Image PixelPanel(RectTransform rt, Color color, float pixelScale = 4f)
+        {
+            var img = Image(rt, PixelPanelSprite(), color, true);
+            img.type = UnityEngine.UI.Image.Type.Sliced;
+            img.pixelsPerUnitMultiplier = 1f / pixelScale;
+            return img;
+        }
+
         public static Button Button(Transform parent, string name, Vector2 anchor, Vector2 pos, Vector2 size,
                                     Sprite sprite, Color color, Font font, string label, int fontSize,
                                     Color textColor, UnityAction onClick)

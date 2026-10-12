@@ -25,7 +25,10 @@ namespace CatTanks.UI
         public Sprite heartEmpty;
         public Sprite exitArrow;              // 48×48, смотрит вправо
         public Sprite crosshair;              // 32×32
-        public Sprite buttonSprite;           // 320×80, лучше с 9-slice границами
+        [Tooltip("Плашка кнопки (start_button_1). Уголки из той же картинки подставятся сами")]
+        public Sprite buttonSprite;
+        public Sprite buttonCornerTopLeft;     // start_button_0
+        public Sprite buttonCornerBottomRight; // start_button_2
         public Sprite panelSprite;
 
         [Header("Цвета")]
@@ -33,6 +36,9 @@ namespace CatTanks.UI
         public Color buttonColor = new Color(0.22f, 0.24f, 0.28f, 0.95f);
         public Color textColor = Color.white;
         public Color dimColor = new Color(0f, 0f, 0f, 0.6f);
+        [Tooltip("Подложка под кнопками меню и паузы")]
+        public Color menuPanelColor = new Color(1f, 1f, 1f, 0.55f);
+        public Color menuHintColor = new Color(0.12f, 0.12f, 0.15f, 1f);
         public Color heartColor = new Color(0.95f, 0.3f, 0.35f);
 
         Font _font;
@@ -128,11 +134,11 @@ namespace CatTanks.UI
             row.childForceExpandWidth = row.childForceExpandHeight = false;
 
             _levelText = UIFactory.Text(UIFactory.Rect(t, "Level", new Vector2(0.5f, 1), new Vector2(0, -24), new Vector2(400, 56)),
-                                        _font, "Уровень 1", 40, TextAnchor.MiddleCenter, textColor);
+                                        _font, "Уровень 1", 32, TextAnchor.MiddleCenter, textColor);
             _enemiesText = UIFactory.Text(UIFactory.Rect(t, "Enemies", new Vector2(1, 1), new Vector2(-32, -24), new Vector2(400, 56)),
-                                          _font, "Врагов: 0", 36, TextAnchor.MiddleRight, textColor);
+                                          _font, "Врагов: 0", 32, TextAnchor.MiddleRight, textColor);
             _toastText = UIFactory.Text(UIFactory.Rect(t, "Toast", new Vector2(0.5f, 1), new Vector2(0, -110), new Vector2(1200, 60)),
-                                        _font, "", 36, TextAnchor.MiddleCenter, accent);
+                                        _font, "", 24, TextAnchor.MiddleCenter, accent);
 
             _arrow = UIFactory.Rect(t, "ExitArrow", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(56, 56));
             _arrow.pivot = new Vector2(0.5f, 0.5f);
@@ -147,10 +153,10 @@ namespace CatTanks.UI
             strip.pivot = new Vector2(0.5f, 0.5f);
             UIFactory.Image(strip, panelSprite != null ? panelSprite : Prims.Square, panelSprite != null ? Color.white : dimColor);
             _bannerTitle = UIFactory.Text(UIFactory.Rect(strip, "Title", new Vector2(0.5f, 0.5f), new Vector2(0, 30), new Vector2(1600, 100)),
-                                          _font, "", 72, TextAnchor.MiddleCenter, accent);
+                                          _font, "", 64, TextAnchor.MiddleCenter, accent);
             _bannerTitle.rectTransform.pivot = new Vector2(0.5f, 0.5f);
             _bannerSub = UIFactory.Text(UIFactory.Rect(strip, "Sub", new Vector2(0.5f, 0.5f), new Vector2(0, -50), new Vector2(1600, 60)),
-                                        _font, "", 36, TextAnchor.MiddleCenter, textColor);
+                                        _font, "", 32, TextAnchor.MiddleCenter, textColor);
             _bannerSub.rectTransform.pivot = new Vector2(0.5f, 0.5f);
         }
 
@@ -159,12 +165,14 @@ namespace CatTanks.UI
             var rt = UIFactory.Stretch(root, "Pause");
             _pause = rt.gameObject;
             UIFactory.Image(rt, Prims.Square, dimColor, true); // блокирует клики по игре
-            var title = UIFactory.Text(UIFactory.Rect(rt, "Title", new Vector2(0.5f, 0.5f), new Vector2(0, 220), new Vector2(800, 110)),
-                                       _font, "Пауза", 80, TextAnchor.MiddleCenter, accent);
-            title.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-            MenuButton(rt, 60, "Продолжить", () => flow.Pause(false));
-            MenuButton(rt, -50, "Заново", () => flow.RestartLevel());
-            MenuButton(rt, -160, "В меню", () => flow.GoToMenu());
+
+            var panel = UIFactory.Rect(rt, "Panel", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560, 600));
+            panel.pivot = new Vector2(0.5f, 0.5f);
+            UIFactory.PixelPanel(panel, menuPanelColor);
+            Title(panel, "Пауза", -100, 64);
+            MenuButton(panel, -240, "Продолжить", () => flow.Pause(false));
+            MenuButton(panel, -360, "Заново", () => flow.RestartLevel());
+            MenuButton(panel, -480, "В меню", () => flow.GoToMenu());
         }
 
         void BuildMenu(Transform root)
@@ -183,34 +191,78 @@ namespace CatTanks.UI
                 fit.aspectRatio = menuBackground.rect.width / menuBackground.rect.height;
             }
 
+            // подложка слева — правая половина экрана остаётся под кота на фоне
+            var panel = UIFactory.Rect(rt, "Panel", new Vector2(0, 0.5f), new Vector2(120, 0), new Vector2(600, 760));
+            UIFactory.PixelPanel(panel, menuPanelColor);
+
             if (logo != null)
             {
-                var l = UIFactory.Rect(rt, "Logo", new Vector2(0.5f, 0.5f), new Vector2(0, 230), new Vector2(1024, 512) * 0.7f);
-                l.pivot = new Vector2(0.5f, 0.5f);
+                var l = UIFactory.Rect(panel, "Logo", new Vector2(0.5f, 1), new Vector2(0, -32), new Vector2(520, 260));
                 UIFactory.Image(l, logo, Color.white).preserveAspect = true;
             }
-            else
-            {
-                var t = UIFactory.Text(UIFactory.Rect(rt, "Title", new Vector2(0.5f, 0.5f), new Vector2(0, 240), new Vector2(1400, 160)),
-                                       _font, gameTitle, 120, TextAnchor.MiddleCenter, accent);
-                t.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-            }
+            else Title(panel, gameTitle, -120, 48);
 
-            MenuButton(rt, -10, "Играть", () => flow.StartNewGame());
-            MenuButton(rt, -120, "Выход", () => flow.Quit());
-            var hint = UIFactory.Text(UIFactory.Rect(rt, "Hint", new Vector2(0.5f, 0), new Vector2(0, 50), new Vector2(1600, 50)),
-                                      _font, controlsHint, 30, TextAnchor.MiddleCenter, new Color(1, 1, 1, 0.6f));
-            hint.rectTransform.pivot = new Vector2(0.5f, 0);
+            MenuButton(panel, -330, "Играть", () => flow.StartNewGame());
+            MenuButton(panel, -450, "Выход", () => flow.Quit());
+
+            // подсказка по управлению — столбиком внизу подложки
+            var hint = UIFactory.Text(UIFactory.Rect(panel, "Hint", new Vector2(0.5f, 0), new Vector2(0, 40), new Vector2(520, 150)),
+                                      _font, controlsHint.Replace("   ", "\n"), 16, TextAnchor.LowerCenter, menuHintColor);
+            hint.lineSpacing = 1.6f;
+            UIFactory.HardShadow(hint, 0, Color.clear);
         }
 
-        void MenuButton(Transform parent, float y, string label, UnityEngine.Events.UnityAction onClick)
+        void Title(RectTransform panel, string text, float y, int size)
         {
-            var b = UIFactory.Button(parent, label, new Vector2(0.5f, 0.5f), new Vector2(0, y), new Vector2(360, 90),
-                                     buttonSprite != null ? buttonSprite : Prims.Square,
-                                     buttonSprite != null ? Color.white : buttonColor,
-                                     _font, label, 40, textColor, onClick);
-            ((RectTransform)b.transform).pivot = new Vector2(0.5f, 0.5f);
+            var t = UIFactory.Text(UIFactory.Rect(panel, "Title", new Vector2(0.5f, 1), new Vector2(0, y), new Vector2(560, 120)),
+                                   _font, text, size, TextAnchor.MiddleCenter, accent);
+            t.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            UIFactory.HardShadow(t, 6, Color.black); // жёсткая пиксельная тень
         }
+
+        void MenuButton(RectTransform panel, float y, string label, UnityEngine.Events.UnityAction onClick)
+        {
+            PixelButton.Create(panel, label, new Vector2(0.5f, 1), new Vector2(0, y), label, new PixelButton.Style
+            {
+                plate = buttonSprite,
+                cornerTopLeft = buttonCornerTopLeft,
+                cornerBottomRight = buttonCornerBottomRight,
+                plateColor = buttonColor,
+                labelColor = textColor,
+                hoverColor = accent,
+                font = _font,
+                fontSize = 32,
+            }, onClick);
+        }
+
+#if UNITY_EDITOR
+        // Кнопка нарезана на 3 спрайта. Какой бы из них ни назначили в Button Sprite, раскладываем по размеру:
+        // самый большой — плашка, из остальных крайний левый — левый верхний уголок, крайний правый — правый нижний.
+        void OnValidate()
+        {
+            if (buttonSprite == null) return;
+            var path = UnityEditor.AssetDatabase.GetAssetPath(buttonSprite);
+            var parts = new List<Sprite>();
+            foreach (var a in UnityEditor.AssetDatabase.LoadAllAssetsAtPath(path))
+                if (a is Sprite s) parts.Add(s);
+            if (parts.Count < 3) return;
+
+            Sprite plate = parts[0];
+            foreach (var s in parts) if (s.rect.width * s.rect.height > plate.rect.width * plate.rect.height) plate = s;
+            Sprite left = null, right = null;
+            foreach (var s in parts)
+            {
+                if (s == plate) continue;
+                if (left == null || s.rect.x < left.rect.x) left = s;
+                if (right == null || s.rect.x > right.rect.x) right = s;
+            }
+            if (buttonSprite == plate && buttonCornerTopLeft == left && buttonCornerBottomRight == right) return;
+            buttonSprite = plate;
+            buttonCornerTopLeft = left;
+            buttonCornerBottomRight = right;
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+#endif
 
         // ------------------------------------------------------------------ Реакция на игру
 
