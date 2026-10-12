@@ -15,6 +15,8 @@ namespace CatTanks
         public float bulletRadius = 0.12f;
         public int maxBounces = 1;            // сколько отскоков ИИ учитывает при прицеливании
         public int aimSamples = 72;           // сколько углов перебирать (72 = шаг 5°)
+        [Tooltip("Сколько углов проверять за кадр: поиск рикошета растягивается на несколько кадров и не даёт рывков")]
+        public int aimSamplesPerFrame = 12;
         public float aimErrorDegrees = 2f;    // небольшой разброс, чтобы ИИ не был снайпером
         public float turretTurnSpeed = 270f;
         public GameObject bulletPrefab;
@@ -33,6 +35,9 @@ namespace CatTanks
         float _timer, _holdAimUntil;
         Vector2 _aimDir = Vector2.right;
         readonly List<Vector2> _debugPoints = new List<Vector2>();
+        bool _searching;                      // идёт поиск рикошета, растянутый по кадрам
+        int _searchIndex;
+        float _searchOffset;
 
         public void Init(LevelContext ctx) { _ctx = ctx; }
 
@@ -61,11 +66,27 @@ namespace CatTanks
             if (_timer > 0f) return;
 
             bool visible = !onlyWhenOnScreen || _ctx.IsOnScreen(transform.position, screenInset);
-            if (!visible || Vector2.Distance(transform.position, player.position) > sightRange || !TryFindShot(player, out var dir))
+            if (!visible || Vector2.Distance(transform.position, player.position) > sightRange) { Retry(); return; }
+
+            Vector2 dir;
+            if (!_searching)
             {
-                _timer = 0.3f; // попробуем ещё раз чуть позже
+                if (!TryDirectShot(player, out dir))
+                {
+                    if (maxBounces <= 0) { Retry(); return; }
+                    // прямого выстрела нет — начинаем перебор рикошетов со случайного угла, чтобы выстрелы были разными
+                    _searching = true;
+                    _searchIndex = 0;
+                    _searchOffset = Random.Range(0f, 360f / Mathf.Max(8, aimSamples));
+                    return;
+                }
+            }
+            else if (!TryBounceShot(player, out dir))
+            {
+                if (_searchIndex >= aimSamples) Retry(); // все углы перебраны — выстрела нет
                 return;
             }
+            _searching = false;
 
             float err = Random.Range(-aimErrorDegrees, aimErrorDegrees);
             dir = Quaternion.Euler(0, 0, err) * dir;
@@ -77,29 +98,36 @@ namespace CatTanks
 
         Vector2 Muzzle(Vector2 dir) => (Vector2)transform.position + dir * (bodyRadius + bulletRadius + 0.05f);
 
-        public bool TryFindShot(Transform player, out Vector2 dir)
+        void Retry()
         {
-            float range = sightRange * 2f;
+            _searching = false;
+            _timer = 0.3f; // попробуем ещё раз чуть позже
+        }
 
-            // 1) прямой выстрел
+        List<Vector2> DebugPoints => drawDebugShot ? _debugPoints : null;
+
+        bool TryDirectShot(Transform player, out Vector2 dir)
+        {
             dir = ((Vector2)player.position - (Vector2)transform.position).normalized;
-            if (Ricochet.Simulate(Muzzle(dir), dir, bulletRadius, 0, range, transform, player, _debugPoints))
-                return true;
+            return Ricochet.Simulate(Muzzle(dir), dir, bulletRadius, 0, sightRange * 2f, transform, player, DebugPoints);
+        }
 
-            // 2) рикошет: перебираем углы, начиная со случайного, чтобы выстрелы были разными
-            if (maxBounces <= 0) return false;
+        /// <summary>Следующая порция углов рикошета (aimSamplesPerFrame за кадр).</summary>
+        bool TryBounceShot(Transform player, out Vector2 dir)
+        {
             float step = 360f / Mathf.Max(8, aimSamples);
-            float offset = Random.Range(0f, step);
-            for (int i = 0; i < aimSamples; i++)
+            int end = Mathf.Min(aimSamples, _searchIndex + Mathf.Max(1, aimSamplesPerFrame));
+            for (; _searchIndex < end; _searchIndex++)
             {
-                float a = (offset + i * step) * Mathf.Deg2Rad;
+                float a = (_searchOffset + _searchIndex * step) * Mathf.Deg2Rad;
                 var d = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
-                if (Ricochet.Simulate(Muzzle(d), d, bulletRadius, maxBounces, range, transform, player, _debugPoints))
+                if (Ricochet.Simulate(Muzzle(d), d, bulletRadius, maxBounces, sightRange * 2f, transform, player, DebugPoints))
                 {
                     dir = d;
                     return true;
                 }
             }
+            dir = default;
             return false;
         }
 
