@@ -44,6 +44,7 @@ namespace CatTanks
             _ctx = ctx;
             ApplyZoom();
             if (_ctx.Player != null) transform.position = Clamp(_ctx.Player.transform.position); // сразу к игроку
+            PublishView();
         }
 
         void LateUpdate()
@@ -54,6 +55,16 @@ namespace CatTanks
                 ? Clamp(_ctx.Player.transform.position)
                 : LevelCenter();
             transform.position = Vector3.Lerp(transform.position, target, 1f - Mathf.Exp(-smooth * Time.unscaledDeltaTime));
+            PublishView();
+        }
+
+        /// <summary>Сообщаем уровню, что видно на экране — враги не стреляют из-за его края.</summary>
+        void PublishView()
+        {
+            float h = _cam.orthographicSize, w = h * _cam.aspect;
+            Vector2 c = transform.position;
+            _ctx.View = new Rect(c.x - w, c.y - h, 2f * w, 2f * h);
+            _ctx.HasView = true;
         }
 
         void ApplyZoom()

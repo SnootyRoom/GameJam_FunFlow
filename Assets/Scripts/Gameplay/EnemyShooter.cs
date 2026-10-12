@@ -19,6 +19,10 @@ namespace CatTanks
         public float turretTurnSpeed = 270f;
         public GameObject bulletPrefab;
         public Color bulletColor = new Color(1f, 0.35f, 0.9f);
+        [Tooltip("Стреляет, только если сам виден на экране — игрок всегда видит, кто по нему бьёт")]
+        public bool onlyWhenOnScreen = true;
+        [Tooltip("Насколько глубоко внутри экрана должен быть враг, чтобы стрелять (юниты)")]
+        public float screenInset = 0.5f;
         public bool drawDebugShot = true;
 
         LevelContext _ctx;
@@ -48,7 +52,8 @@ namespace CatTanks
             _timer -= Time.deltaTime;
             if (_timer > 0f) return;
 
-            if (Vector2.Distance(transform.position, player.position) > sightRange || !TryFindShot(player, out var dir))
+            bool visible = !onlyWhenOnScreen || _ctx.IsOnScreen(transform.position, screenInset);
+            if (!visible || Vector2.Distance(transform.position, player.position) > sightRange || !TryFindShot(player, out var dir))
             {
                 _timer = 0.3f; // попробуем ещё раз чуть позже
                 return;

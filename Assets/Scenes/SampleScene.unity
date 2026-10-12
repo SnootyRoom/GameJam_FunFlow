@@ -131,6 +131,7 @@ GameObject:
   - component: {fileID: 519420031}
   - component: {fileID: 519420029}
   - component: {fileID: 519420030}
+  - component: {fileID: 519420033}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -256,6 +257,25 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &519420033
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 519420028}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a35f16b798d74d428d863502e84dec8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CatTanks.CameraFollow
+  zoom: 0
+  cellsHigh: 8
+  pixelsPerCell: 64
+  fitPadding: 0.5
+  smooth: 8
+  clampToLevel: 1
+  background: {r: 0.16, g: 0.17, b: 0.19, a: 1}
 --- !u!1 &619394800
 GameObject:
   m_ObjectHideFlags: 0
@@ -395,7 +415,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 160ba4729897e174d884e35b2e10b299, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CatTanks.EntitySpawner
-  playerPrefab: {fileID: 0}
+  playerPrefab: {fileID: 1000000000000000001, guid: 8ddca4e6178f8c64b8f28a5fbb7da11f, type: 3}
   enemies:
   - {fileID: 11400000, guid: 36208cb8befa1164ea0060c80beddfee, type: 2}
   - {fileID: 11400000, guid: c3f10920668ae7e43833ee5ef5e136f2, type: 2}
@@ -415,23 +435,23 @@ MonoBehaviour:
   floor:
     tile: {fileID: 0}
     sprite: {fileID: -1712021781683416019, guid: 84e626f3022a8b14e8dde6cad169cf35, type: 3}
-    color: {r: 0.86, g: 0.84, b: 0.79, a: 1}
+    placeholderColor: {r: 0.86, g: 0.84, b: 0.79, a: 1}
     material: {fileID: 0}
   walls:
     tile: {fileID: 0}
     sprite: {fileID: 7760537012569917018, guid: 067ef835912db1e42a5df025ad891a90, type: 3}
-    color: {r: 0.27, g: 0.28, b: 0.31, a: 1}
+    placeholderColor: {r: 0.27, g: 0.28, b: 0.31, a: 1}
     material: {fileID: 0}
   cover:
     tile: {fileID: 0}
     sprite: {fileID: 7760537012569917018, guid: 067ef835912db1e42a5df025ad891a90, type: 3}
-    color: {r: 0.55, g: 0.4, b: 0.24, a: 1}
+    placeholderColor: {r: 0.55, g: 0.4, b: 0.24, a: 1}
     material: {fileID: 0}
   floorMap: {fileID: 0}
   wallMap: {fileID: 0}
   coverMap: {fileID: 0}
-  startPrefab: {fileID: 3495671725631651651, guid: 0b03bf10d5a022e45974b1d0e465e0ef, type: 3}
-  exitPrefab: {fileID: 0}
+  startPrefab: {fileID: 4735176287988925585, guid: c14ae9edd4746d54e8846217f1ef172c, type: 3}
+  exitPrefab: {fileID: 4001512597730911044, guid: 790c68b8eb01c10498f84236b134ca7f, type: 3}
   startColor: {r: 0.2, g: 0.7, b: 0.3, a: 0.5}
   exitColor: {r: 1, g: 0.8, b: 0.1, a: 0.7}
   drawGizmos: 1
@@ -505,7 +525,6 @@ MonoBehaviour:
   font: {fileID: 0}
   logo: {fileID: 0}
   menuBackground: {fileID: 7708467723429685855, guid: 3d773410ce32dc3498e771cbae6e6a63, type: 3}
-  menuBackgroundTint: {r: 0.21568629, g: 0.21568629, b: 0.21568629, a: 1}
   heartFull: {fileID: 0}
   heartEmpty: {fileID: 0}
   exitArrow: {fileID: 0}

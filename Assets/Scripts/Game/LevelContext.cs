@@ -24,6 +24,18 @@ namespace CatTanks
 
         public bool PlayerAlive => Player != null && Player.activeInHierarchy;
 
+        /// <summary>Что сейчас видно на экране (мировые координаты). Обновляет CameraFollow каждый кадр.</summary>
+        public Rect View;
+        public bool HasView;   // false — камеры нет (тест в пустой сцене), тогда «видно всё»
+
+        /// <summary>Виден ли p на экране. inset > 0 — точка должна быть внутри экрана хотя бы на столько юнитов.</summary>
+        public bool IsOnScreen(Vector2 p, float inset = 0f)
+        {
+            if (!HasView) return true;
+            return p.x >= View.xMin + inset && p.x <= View.xMax - inset &&
+                   p.y >= View.yMin + inset && p.y <= View.yMax - inset;
+        }
+
         public int AliveEnemyCount()
         {
             Enemies.RemoveAll(e => e == null); // на случай, если врага удалили не через Health

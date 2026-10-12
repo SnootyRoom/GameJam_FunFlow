@@ -39,7 +39,7 @@ namespace CatTanks
             if (!_aggro)
             {
                 if (dist < hearRange) _aggro = true;
-                else if (dist < aggroRange && CanSee(me, target, _ctx.Player.transform)) _aggro = true;
+                else if (dist < aggroRange && _ctx.IsOnScreen(me) && CanSee(me, target, _ctx.Player.transform)) _aggro = true;
                 if (!_aggro) return;
             }
 
