@@ -55,6 +55,12 @@ namespace CatTanks
 
         void Build()
         {
+            // Полоски гусениц встают ровно на ступень выше корпуса. Всё, что уже было выше корпуса (башня с дулом, кот),
+            // поднимаем на ступень — иначе башня окажется на одном уровне с гусеницами и Unity нарисует их в случайном порядке.
+            foreach (var sr in GetComponentsInChildren<SpriteRenderer>(true))
+                if (sr != body && sr.sortingLayerID == body.sortingLayerID && sr.sortingOrder > body.sortingOrder)
+                    sr.sortingOrder += 1;
+
             var src = body.sprite;
             float ppu = src.pixelsPerUnit;
             Rect r = src.rect;          // где спрайт корпуса лежит в текстуре
