@@ -107,6 +107,30 @@ namespace CatTanks.UI
             return b;
         }
 
+        /// <summary>
+        /// Кнопка на «бумажной» плашке (UIFactory.PaperSprite) — для пунктов, у которых нет готовой картинки.
+        /// По размеру и виду совпадает с картинками pause_*: block — экранных пикселей на пиксель плашки.
+        /// </summary>
+        public static PixelButton CreatePaper(Transform parent, string name, Vector2 anchor, Vector2 pos, Vector2 size,
+                                              Sprite paper, float block, string text, Font font, int fontSize,
+                                              Color ink, Color hover)
+        {
+            var b = Shell(parent, name, anchor, pos, size);
+            UIFactory.PixelPanel(b.content, paper, Color.white, block).raycastTarget = false;
+
+            // текст — по центру карточки, без полосы падающей тени справа-снизу
+            var labelRect = UIFactory.Stretch(b.content, "Label");
+            labelRect.offsetMin = new Vector2(0, block);
+            labelRect.offsetMax = new Vector2(-block, 0);
+            var label = UIFactory.Text(labelRect, font, text, fontSize, TextAnchor.MiddleCenter, ink);
+            Object.DestroyImmediate(label.GetComponent<Shadow>()); // на светлой бумаге тень не нужна
+
+            b.label = label;
+            b.labelNormal = ink;
+            b.labelHover = hover;
+            return b;
+        }
+
         static PixelButton Shell(Transform parent, string name, Vector2 anchor, Vector2 pos, Vector2 size)
         {
             var rt = UIFactory.Rect(parent, name, anchor, pos, size);

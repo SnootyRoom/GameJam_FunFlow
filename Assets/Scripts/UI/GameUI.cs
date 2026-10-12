@@ -99,26 +99,46 @@ namespace CatTanks.UI
             m.settings.onActivated.AddListener(() => m.ShowSettings(true));
             m.quit.onActivated.AddListener(flow.Quit);
             m.back.onActivated.AddListener(() => m.ShowSettings(false));
-            m.fullscreen.onActivated.AddListener(() =>
-            {
-                bool full = !Screen.fullScreen; // Screen.fullScreen обновится только в следующем кадре — запоминаем сами
-                Screen.fullScreen = full;
-                m.SetFullscreenLabel(full);
-            });
-            m.SetFullscreenLabel(Screen.fullScreen);
-            m.sound.onActivated.AddListener(() =>
-            {
-                bool on = Sfx.MasterVolume <= 0.001f;
-                Sfx.MasterVolume = on ? SoundVolume : 0f;
-                PlayerPrefs.SetInt(SoundPref, on ? 1 : 0);
-                m.SetSoundLabel(on);
-            });
-            m.SetSoundLabel(Sfx.MasterVolume > 0.001f);
+            m.fullscreen.onActivated.AddListener(ToggleFullscreen);
+            m.sound.onActivated.AddListener(ToggleSound);
 
             var p = _ui.pause;
             p.resume.onActivated.AddListener(() => flow.Pause(false));
             p.restart.onActivated.AddListener(flow.RestartLevel);
+            p.tutorial.onActivated.AddListener(() => p.ShowPage(PauseView.Page.Tutorial));
+            p.settings.onActivated.AddListener(() => p.ShowPage(PauseView.Page.Settings));
             p.mainMenu.onActivated.AddListener(flow.GoToMenu);
+            p.fullscreen.onActivated.AddListener(ToggleFullscreen);
+            p.sound.onActivated.AddListener(ToggleSound);
+            p.settingsBack.onActivated.AddListener(() => p.ShowPage(PauseView.Page.Main));
+            p.tutorialBack.onActivated.AddListener(() => p.ShowPage(PauseView.Page.Main));
+
+            RefreshSettingsLabels(Screen.fullScreen);
+        }
+
+        // Настройки одни на главное меню и паузу — подписи обновляем в обоих местах.
+        void ToggleFullscreen()
+        {
+            bool full = !Screen.fullScreen; // Screen.fullScreen обновится только в следующем кадре — запоминаем сами
+            Screen.fullScreen = full;
+            RefreshSettingsLabels(full);
+        }
+
+        void ToggleSound()
+        {
+            bool on = Sfx.MasterVolume <= 0.001f;
+            Sfx.MasterVolume = on ? SoundVolume : 0f;
+            PlayerPrefs.SetInt(SoundPref, on ? 1 : 0);
+            RefreshSettingsLabels(Screen.fullScreen);
+        }
+
+        void RefreshSettingsLabels(bool fullscreen)
+        {
+            bool sound = Sfx.MasterVolume > 0.001f;
+            _ui.menu.SetFullscreenLabel(fullscreen);
+            _ui.menu.SetSoundLabel(sound);
+            _ui.pause.SetFullscreenLabel(fullscreen);
+            _ui.pause.SetSoundLabel(sound);
         }
 
         // ------------------------------------------------------------------ Реакция на игру
@@ -128,6 +148,7 @@ namespace CatTanks.UI
             _ui.menu.gameObject.SetActive(s == GameState.Menu);
             if (s == GameState.Menu) _ui.menu.ShowSettings(false); // в меню всегда с главной колонки
             _ui.pause.gameObject.SetActive(s == GameState.Paused);
+            if (s == GameState.Paused) _ui.pause.ShowPage(PauseView.Page.Main); // пауза всегда открывается с главной
             _ui.hud.gameObject.SetActive(s != GameState.Menu);
             _ui.banner.gameObject.SetActive(s == GameState.LevelComplete || s == GameState.PlayerDead);
             bool playing = s == GameState.Playing;

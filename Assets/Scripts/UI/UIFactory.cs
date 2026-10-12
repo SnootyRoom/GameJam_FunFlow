@@ -152,6 +152,38 @@ namespace CatTanks.UI
             return _pixelArrow;
         }
 
+        /// <summary>
+        /// «Бумажная» плашка 10×10 для 9-slice в стиле кнопок паузы (pause_restart): тёмный контур со скруглёнными
+        /// углами, светлая полоса сверху и слева, тень-полоса снизу и справа, падающая тень со сдвигом на 1 пиксель.
+        /// Один пиксель спрайта = один «блок» картинки кнопки (8 px исходника). Используется для подложки паузы
+        /// и для кнопок без готовой картинки.
+        /// </summary>
+        public static Sprite PaperSprite(Color32 ink, Color32 light, Color32 paper, Color32 shade, Color32 shadow)
+        {
+            const int n = 10, cw = n - 1; // карточка 9×9 + тень на 1 пиксель вправо-вниз
+            var px = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    var c = Card(x, y - 1);                     // y=0 — низ текстуры, карточка сдвинута на 1 вверх
+                    if (c.a == 0 && Card(x - 1, y).a > 0) c = shadow; // под карточкой, сдвинутой вправо-вниз
+                    px[y * n + x] = c;
+                }
+            return MakePixelSprite("Paper", n, n, px, new Vector4(4, 4, 4, 4));
+
+            Color32 Card(int cx, int cy)
+            {
+                if (cx < 0 || cy < 0 || cx >= cw || cy >= cw) return new Color32(0, 0, 0, 0);
+                int dl = cx, dr = cw - 1 - cx, db = cy, dt = cw - 1 - cy;
+                int dx = Mathf.Min(dl, dr), dy = Mathf.Min(db, dt);
+                if (dx == 0 && dy == 0) return new Color32(0, 0, 0, 0);       // срезанный угол
+                if (dx == 0 || dy == 0 || (dx == 1 && dy == 1)) return ink;   // контур со ступенькой в углу
+                if (dr == 1 || db == 1) return shade;
+                if (dl == 1 || dt == 1) return light;
+                return paper;
+            }
+        }
+
         static Sprite MakePixelSprite(string name, int w, int h, Color32[] px, Vector4 border)
         {
             var tex = new Texture2D(w, h, TextureFormat.RGBA32, false)

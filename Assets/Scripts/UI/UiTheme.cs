@@ -35,8 +35,24 @@ namespace CatTanks.UI
         public Sprite settingsButton;
         public Sprite exitButton;
 
+        [Header("Пауза (картинки с готовым текстом, 520×104; пусто = подставятся из Assets/Art/UI/pause_*)")]
+        public Sprite pauseContinueButton;
+        public Sprite pauseRestartButton;
+        public Sprite pauseTutorialButton;
+        public Sprite pauseSettingsButton;
+        [Tooltip("Картинки пока нет — будет текстовая кнопка на бумажной плашке")]
+        public Sprite pauseMainMenuButton;
+        [Tooltip("Палитра паузы — снята с кнопок pause_*")]
+        public Color pauseInk = new Color32(42, 34, 51, 255);
+        public Color pausePaper = new Color32(242, 234, 211, 255);
+        public Color pausePaperLight = new Color32(255, 252, 238, 255);
+        public Color pausePaperShade = new Color32(196, 184, 150, 255);
+        public Color pauseHighlight = new Color32(137, 17, 70, 255);  // малиновый, как у CONTINUE
+        public Color pauseBackdrop = new Color32(40, 40, 48, 170);
+
         [Header("Пиксельные заготовки (создаются сборщиком в Assets/Art/UI/Generated)")]
-        public Sprite pixelPanel;             // подложка паузы, 9-slice
+        public Sprite pixelPanel;             // запасная пиксельная подложка, 9-slice
+        public Sprite paperPanel;             // подложка паузы и плашка текстовых кнопок паузы, 9-slice
         public Sprite pixelCursor;            // стрелка у наведённой текстовой кнопки
         public Sprite circle, ring, triangle; // заглушки сердец, прицела и стрелки на выход
 
@@ -45,8 +61,6 @@ namespace CatTanks.UI
         public Color buttonColor = new Color(0.22f, 0.24f, 0.28f, 0.95f);
         public Color textColor = Color.white;
         public Color dimColor = new Color(0f, 0f, 0f, 0.6f);
-        [Tooltip("Подложка паузы")]
-        public Color menuPanelColor = new Color(1f, 1f, 1f, 0.55f);
         public Color heartColor = new Color(0.95f, 0.3f, 0.35f);
 
 #if UNITY_EDITOR

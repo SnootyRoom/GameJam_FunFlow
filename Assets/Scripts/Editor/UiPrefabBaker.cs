@@ -75,8 +75,42 @@ namespace CatTanks.EditorTools
             if (t.circle == null) t.circle = SavePng(Prims.Circle, "circle", Vector4.zero, FilterMode.Bilinear);
             if (t.ring == null) t.ring = SavePng(Prims.Ring, "ring", Vector4.zero, FilterMode.Bilinear);
             if (t.triangle == null) t.triangle = SavePng(Prims.Triangle, "triangle", Vector4.zero, FilterMode.Bilinear);
+            // палитру могли поменять в теме — плашку паузы перерисовываем всегда
+            t.paperPanel = SavePng(UIFactory.PaperSprite(t.pauseInk, t.pausePaperLight, t.pausePaper, t.pausePaperShade,
+                                                         new Color32(0, 0, 0, 110)), "paper_panel", new Vector4(4, 4, 4, 4), FilterMode.Point);
+
+            FillFromArt(ref t.pauseContinueButton, "pause_continue");
+            FillFromArt(ref t.pauseRestartButton, "pause_restart");
+            FillFromArt(ref t.pauseTutorialButton, "pause_tutorial");
+            FillFromArt(ref t.pauseSettingsButton, "pause_settings");
+            FillFromArt(ref t.pauseMainMenuButton, "pause_main_menu");
+            foreach (var s in new[] { t.pauseContinueButton, t.pauseRestartButton, t.pauseTutorialButton,
+                                      t.pauseSettingsButton, t.pauseMainMenuButton })
+                MakeCrisp(s);
+
             EditorUtility.SetDirty(t);
             AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>Пустое поле темы → спрайт из Assets/Art/UI/{file}.png, если такая картинка есть.</summary>
+        static void FillFromArt(ref Sprite field, string file)
+        {
+            if (field != null) return;
+            foreach (var a in AssetDatabase.LoadAllAssetsAtPath($"Assets/Art/UI/{file}.png"))
+                if (a is Sprite s) { field = s; return; }
+        }
+
+        /// <summary>Пиксель-арт масштабируется в UI — без сглаживания и сжатия, иначе края блоков мылятся.</summary>
+        static void MakeCrisp(Sprite sprite)
+        {
+            if (sprite == null) return;
+            var importer = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(sprite)) as TextureImporter;
+            if (importer == null) return;
+            if (importer.filterMode == FilterMode.Point && importer.textureCompression == TextureImporterCompression.Uncompressed) return;
+            importer.filterMode = FilterMode.Point;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.mipmapEnabled = false;
+            importer.SaveAndReimport();
         }
 
         static Sprite SavePng(Sprite source, string name, Vector4 border, FilterMode filter)

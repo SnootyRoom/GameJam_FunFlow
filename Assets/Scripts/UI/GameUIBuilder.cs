@@ -135,21 +135,83 @@ namespace CatTanks.UI
 
         // ------------------------------------------------------------------ Пауза
 
+        // По референсу: бумажная карточка с тёмным контуром, заголовок PAUSE, полоса-разделитель, колонка кнопок.
+        // Картинки кнопок pause_* нарисованы блоками по 8 px → масштаб 1.25 даёт ровные блоки по 10 px.
+        const float PauseScale = 1.25f, PauseBlock = 8f * PauseScale;
+        const float PauseButtonW = 520f * PauseScale, PauseButtonH = 104f * PauseScale;
+        const float PauseFirstY = -235f, PauseStep = 145f, PausePadding = 60f;
+
         PauseView BuildPause(Transform root)
         {
             var rt = UIFactory.Stretch(root, "Pause");
             var v = rt.gameObject.AddComponent<PauseView>();
-            UIFactory.Image(rt, null, t.dimColor, true); // затемнение, заодно блокирует клики по игре
+            UIFactory.Image(rt, null, t.pauseBackdrop, true); // затемнение, заодно блокирует клики по игре
 
-            var panel = UIFactory.Rect(rt, "Panel", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560, 600));
+            var paper = Or(t.paperPanel, UIFactory.PaperSprite(t.pauseInk, t.pausePaperLight, t.pausePaper, t.pausePaperShade,
+                                                               new Color32(0, 0, 0, 110)));
+            float height = -PauseFirstY + 4 * PauseStep + PauseButtonH / 2f + PausePadding;
+            var panel = UIFactory.Rect(rt, "Panel", new Vector2(0.5f, 0.5f), Vector2.zero,
+                                       new Vector2(PauseButtonW + 2 * PausePadding + PauseBlock, height));
             panel.pivot = new Vector2(0.5f, 0.5f);
-            UIFactory.PixelPanel(panel, t.pixelPanel, t.menuPanelColor);
-            PanelTitle(panel, "Paused", -100, 64);
-            v.resume = TextButton(panel, -240, "Resume");
-            v.restart = TextButton(panel, -360, "Restart");
-            v.mainMenu = TextButton(panel, -480, "Main Menu");
+            UIFactory.PixelPanel(panel, paper, Color.white, PauseBlock);
+
+            var main = UIFactory.Stretch(panel, "Main");
+            v.mainGroup = main.gameObject;
+            PauseHeader(main, "PAUSE");
+            v.resume = PauseButton(main, 0, t.pauseContinueButton, "CONTINUE", paper);
+            v.restart = PauseButton(main, 1, t.pauseRestartButton, "RESTART", paper);
+            v.tutorial = PauseButton(main, 2, t.pauseTutorialButton, "TUTORIAL", paper);
+            v.settings = PauseButton(main, 3, t.pauseSettingsButton, "SETTINGS", paper);
+            v.mainMenu = PauseButton(main, 4, t.pauseMainMenuButton, "MAIN MENU", paper);
+
+            var settings = UIFactory.Stretch(panel, "Settings");
+            v.settingsGroup = settings.gameObject;
+            PauseHeader(settings, "SETTINGS");
+            v.fullscreen = PauseButton(settings, 0, null, v.fullscreenOn, paper);
+            v.fullscreenLabel = v.fullscreen.label;
+            v.sound = PauseButton(settings, 1, null, v.soundOn, paper);
+            v.soundLabel = v.sound.label;
+            v.settingsBack = PauseButton(settings, 4, null, "BACK", paper);
+
+            // временная страница обучения — подсказка по управлению; потом её заменят оверлеи
+            var tutorial = UIFactory.Stretch(panel, "Tutorial");
+            v.tutorialGroup = tutorial.gameObject;
+            PauseHeader(tutorial, "TUTORIAL");
+            var help = UIFactory.Rect(tutorial, "Controls", new Vector2(0.5f, 1), new Vector2(0, PauseFirstY - PauseButtonH / 2f),
+                                      new Vector2(PauseButtonW, 3 * PauseStep));
+            help.pivot = new Vector2(0.5f, 1);
+            var text = UIFactory.Text(help, _font, t.controlsHint.Replace("   ", "\n"), 22, TextAnchor.UpperLeft, t.pauseInk);
+            text.lineSpacing = 1.8f;
+            Object.DestroyImmediate(text.GetComponent<Shadow>());
+            v.tutorialBack = PauseButton(tutorial, 4, null, "BACK", paper);
+
+            v.ShowPage(PauseView.Page.Main);
             rt.gameObject.SetActive(false);
             return v;
+        }
+
+        void PauseHeader(RectTransform parent, string text)
+        {
+            var title = UIFactory.Text(UIFactory.Rect(parent, "Title", new Vector2(0.5f, 1), new Vector2(0, -85), new Vector2(PauseButtonW, 100)),
+                                       _font, text, 56, TextAnchor.MiddleCenter, t.pauseInk);
+            title.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            Object.DestroyImmediate(title.GetComponent<Shadow>());
+
+            // разделитель под заголовком, как на референсе
+            var line = UIFactory.Rect(parent, "Divider", new Vector2(0.5f, 1), new Vector2(0, -145),
+                                      new Vector2(PauseButtonW + PausePadding, PauseBlock / 2f));
+            line.pivot = new Vector2(0.5f, 0.5f);
+            UIFactory.Image(line, null, t.pausePaperShade);
+        }
+
+        /// <summary>Кнопка колонки паузы: картинка художника или такая же по виду бумажная плашка с текстом.</summary>
+        PixelButton PauseButton(RectTransform parent, int index, Sprite art, string label, Sprite paper)
+        {
+            var anchor = new Vector2(0.5f, 1);
+            var pos = new Vector2(0, PauseFirstY - index * PauseStep);
+            if (art != null) return PixelButton.CreateImage(parent, label, anchor, pos, art, PauseScale, null);
+            return PixelButton.CreatePaper(parent, label, anchor, pos, new Vector2(PauseButtonW, PauseButtonH), paper, PauseBlock,
+                                           label, _font, 36, t.pauseInk, t.pauseHighlight);
         }
 
         // ------------------------------------------------------------------ Главное меню и настройки
@@ -230,14 +292,6 @@ namespace CatTanks.UI
             var outline = title.gameObject.AddComponent<Outline>(); // тонкий тёмный контур — читается и на небе, и на облаках
             outline.effectColor = new Color(0.1f, 0.12f, 0.2f, 0.5f);
             outline.effectDistance = new Vector2(3, -3);
-        }
-
-        void PanelTitle(RectTransform panel, string text, float y, int size)
-        {
-            var title = UIFactory.Text(UIFactory.Rect(panel, "Title", new Vector2(0.5f, 1), new Vector2(0, y), new Vector2(560, 120)),
-                                       _font, text, size, TextAnchor.MiddleCenter, t.accent);
-            title.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-            UIFactory.HardShadow(title, 6, Color.black); // жёсткая пиксельная тень
         }
 
         PixelButton TextButton(RectTransform panel, float y, string label, int fontSize = 32)
