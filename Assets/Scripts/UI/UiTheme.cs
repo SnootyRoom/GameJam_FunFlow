@@ -8,10 +8,6 @@ namespace CatTanks.UI
     [CreateAssetMenu(menuName = "CatTanks/UI Theme", fileName = "UiTheme")]
     public class UiTheme : ScriptableObject
     {
-        [Header("Тексты")]
-        public string gameTitle = "Cat in a Tank";
-        public string controlsHint = "WASD - move   Mouse - aim   LMB - fire   RMB - machine gun   Q - nut strike   Esc - pause";
-
         [Header("Шрифт и картинки художника (пусто = примитивы)")]
         public Font font;
         public Sprite logo;                   // вместо текстового заголовка, ~1024×512
@@ -44,10 +40,18 @@ namespace CatTanks.UI
         public Color pauseHighlight = new Color32(137, 17, 70, 255);  // малиновый, как у CONTINUE
         public Color pauseBackdrop = new Color32(40, 40, 48, 170);
 
+        [Header("Обучение (пусто = подставятся из Assets/Art/UI/button_next, button_go, button_skip; рыба — из finish_003)")]
+        public Sprite nextButton;             // 280×104
+        public Sprite goButton;               // 280×104
+        public Sprite skipButton;             // 280×104
+        public Sprite tutorialFish;           // цель уровня на карточке «Your goal»
+        public Color ultBarColor = new Color32(240, 150, 60, 255);
+
         [Header("Пиксельные заготовки (создаются сборщиком в Assets/Art/UI/Generated)")]
         public Sprite pixelPanel;             // запасная пиксельная подложка, 9-slice
         public Sprite paperPanel;             // подложка паузы и плашка текстовых кнопок паузы, 9-slice
-        public Sprite circle, ring, triangle; // заглушки сердец, прицела и стрелки на выход
+        public Sprite pixelArrow;             // стрелка на выход (HUD и обучение), если нет exitArrow
+        public Sprite circle, ring;           // заглушки сердец и прицела
 
         [Header("Цвета")]
         public Color accent = new Color(1f, 0.65f, 0.25f);

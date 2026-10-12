@@ -1,5 +1,5 @@
-// Корень префаба GameCanvas: холст и ссылки на экраны (вложенные префабы Hud, Banner, Pause, MainMenu).
-// Порядок детей = порядок отрисовки: HUD снизу, главное меню сверху.
+// Корень префаба GameCanvas: холст и ссылки на экраны (вложенные префабы Hud, Banner, Pause, MainMenu, Tutorial).
+// Порядок детей = порядок отрисовки: HUD снизу, обучение сверху.
 using UnityEngine;
 
 namespace CatTanks.UI
@@ -10,5 +10,6 @@ namespace CatTanks.UI
         public BannerView banner;
         public PauseView pause;
         public MainMenuView menu;
+        public TutorialView tutorial;
     }
 }

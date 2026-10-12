@@ -22,8 +22,10 @@ namespace CatTanks.UI
 
         GameUIView _ui;
         PlayerUltimate _ult;
+        System.Action _afterTutorial;
 
         const string SoundPref = "sound_on";
+        const string TutorialSeenPref = "tutorial_seen";
         const float SoundVolume = 0.7f;
 
         // ------------------------------------------------------------------ Жизненный цикл
@@ -60,6 +62,7 @@ namespace CatTanks.UI
             flow.OnPlayerHpChanged += _ui.hud.SetHearts;
             flow.OnExitBlocked += HandleExitBlocked;
             flow.OnEnemyCountChanged += _ui.hud.SetEnemies;
+            if (_ui.tutorial != null) _ui.tutorial.Closed += HandleTutorialClosed;
         }
 
         void Start()
@@ -95,25 +98,23 @@ namespace CatTanks.UI
         void WireButtons()
         {
             var m = _ui.menu;
-            On(m.play, flow.StartNewGame);
-            On(m.tutorial, () => m.ShowPage(MainMenuView.Page.Tutorial));
+            On(m.play, Play);
+            On(m.tutorial, () => OpenTutorial(null));
             On(m.settings, () => m.ShowPage(MainMenuView.Page.Settings));
             On(m.quit, flow.Quit);
             On(m.back, () => m.ShowPage(MainMenuView.Page.Main));
-            On(m.tutorialBack, () => m.ShowPage(MainMenuView.Page.Main));
             On(m.fullscreen, ToggleFullscreen);
             On(m.sound, ToggleSound);
 
             var p = _ui.pause;
             On(p.resume, () => flow.Pause(false));
             On(p.restart, flow.RestartLevel);
-            On(p.tutorial, () => p.ShowPage(PauseView.Page.Tutorial));
+            On(p.tutorial, () => OpenTutorial(null));
             On(p.settings, () => p.ShowPage(PauseView.Page.Settings));
             On(p.mainMenu, flow.GoToMenu);
             On(p.fullscreen, ToggleFullscreen);
             On(p.sound, ToggleSound);
             On(p.settingsBack, () => p.ShowPage(PauseView.Page.Main));
-            On(p.tutorialBack, () => p.ShowPage(PauseView.Page.Main));
 
             RefreshSettingsLabels(Screen.fullScreen);
         }
@@ -122,6 +123,42 @@ namespace CatTanks.UI
         static void On(PixelButton button, UnityEngine.Events.UnityAction action)
         {
             if (button != null) button.onActivated.AddListener(action);
+        }
+
+        // ------------------------------------------------------------------ Обучение
+
+        /// <summary>Play: при первом запуске сначала обучение, игра начнётся по GO / SKIP.</summary>
+        void Play()
+        {
+            if (_ui.tutorial != null && PlayerPrefs.GetInt(TutorialSeenPref, 0) == 0) OpenTutorial(flow.StartNewGame);
+            else flow.StartNewGame();
+        }
+
+        /// <summary>Карточки поверх меню или паузы; их колонку на это время прячем. after — что сделать после закрытия.</summary>
+        void OpenTutorial(System.Action after)
+        {
+            if (_ui.tutorial == null) { after?.Invoke(); return; } // префаб собран старой версией сборщика
+            _afterTutorial = after;
+            _ui.menu.mainGroup.SetActive(false);
+            _ui.pause.gameObject.SetActive(false);
+            _ui.tutorial.Open();
+        }
+
+        void HandleTutorialClosed()
+        {
+            PlayerPrefs.SetInt(TutorialSeenPref, 1);
+            var after = _afterTutorial;
+            _afterTutorial = null;
+            HandleState(flow.State); // вернуть меню или паузу как было
+            after?.Invoke();
+        }
+
+        /// <summary>Закрыть без последствий (игра сама ушла из меню / паузы).</summary>
+        void HideTutorial()
+        {
+            if (_ui.tutorial == null || !_ui.tutorial.IsOpen) return;
+            _afterTutorial = null;
+            _ui.tutorial.gameObject.SetActive(false);
         }
 
         // Настройки одни на главное меню и паузу — подписи обновляем в обоих местах.
@@ -157,6 +194,7 @@ namespace CatTanks.UI
             if (s == GameState.Menu) _ui.menu.ShowPage(MainMenuView.Page.Main); // в меню всегда с главной колонки
             _ui.pause.gameObject.SetActive(s == GameState.Paused);
             if (s == GameState.Paused) _ui.pause.ShowPage(PauseView.Page.Main); // пауза всегда открывается с главной
+            if (s != GameState.Menu && s != GameState.Paused) HideTutorial(); // Esc на паузе — обучение закрывается вместе с ней
             _ui.hud.gameObject.SetActive(s != GameState.Menu);
             _ui.banner.gameObject.SetActive(s == GameState.LevelComplete || s == GameState.PlayerDead);
             bool playing = s == GameState.Playing;

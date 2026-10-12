@@ -12,8 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b54cd98d1265405fa8f7e13bd1b55fbe, type: 3}
   m_Name: UiTheme
   m_EditorClassIdentifier: 
-  gameTitle: Cat in a Tank
-  controlsHint: WASD - move   Mouse - aim   LMB - fire   RMB - machine gun   Q - nut strike   Esc - pause
   font: {fileID: 12800000, guid: 4faf17a37e4b4fa7aa8ab617039bb50d, type: 3}
   logo: {fileID: 0}
   menuBackground: {fileID: -4550388572695364134, guid: 8002c5b8ecbbc8c45bcbd3a8df6801e1, type: 3}
@@ -38,11 +36,16 @@ MonoBehaviour:
   pausePaperShade: {r: 0.76862746, g: 0.72156864, b: 0.5882353, a: 1}
   pauseHighlight: {r: 0.5372549, g: 0.06666667, b: 0.27450982, a: 1}
   pauseBackdrop: {r: 0.15686275, g: 0.15686275, b: 0.1882353, a: 0.6666667}
+  nextButton: {fileID: -7996211629232386951, guid: 70633335f4994c1468c943f1f2d646fc, type: 3}
+  goButton: {fileID: 3265093608121825590, guid: 6e454046d56f0e94da07237ff2c39b27, type: 3}
+  skipButton: {fileID: 6912660601821962708, guid: a21ada27a09badb4c8db74aeda602449, type: 3}
+  tutorialFish: {fileID: -4805814020478670971, guid: ffc04a8cd0047ac4d8c57809b9c559f3, type: 3}
+  ultBarColor: {r: 0.9411765, g: 0.5882353, b: 0.23529412, a: 1}
   pixelPanel: {fileID: 21300000, guid: 961debc3aa9a3fc4283b7be90d3155ab, type: 3}
   paperPanel: {fileID: 21300000, guid: 19da2832484f6ff44b7b020dced02b6e, type: 3}
+  pixelArrow: {fileID: 21300000, guid: b3ec36f34b92c754699ce829d8189143, type: 3}
   circle: {fileID: 21300000, guid: cf66af1896bf3ef4fb1108547288d2a8, type: 3}
   ring: {fileID: 6554736390298987251, guid: 592d50a20a91aad40ad4d3cd15a98a6a, type: 3}
-  triangle: {fileID: 21300000, guid: a673ea31b9a2d464f8144e7d7273f105, type: 3}
   accent: {r: 0.5372549, g: 0.05490196, b: 0.28235295, a: 1}
   textColor: {r: 1, g: 1, b: 1, a: 1}
   dimColor: {r: 0.11698109, g: 0.107490174, b: 0.107490174, a: 0.6}

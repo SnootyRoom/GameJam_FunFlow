@@ -1,5 +1,5 @@
 // Меню паузы. Лежит на корне префаба Pause. Что делают кнопки — назначает GameUI.
-// Три страницы на одной подложке: главная, настройки, обучение (позже его заменят оверлеи).
+// Две страницы на одной подложке: главная и настройки. Обучение — отдельный экран TutorialView.
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -7,7 +7,7 @@ namespace CatTanks.UI
 {
     public class PauseView : MonoBehaviour
     {
-        public enum Page { Main, Settings, Tutorial }
+        public enum Page { Main, Settings }
 
         [Header("Главная")]
         public GameObject mainGroup;
@@ -29,16 +29,11 @@ namespace CatTanks.UI
         public string soundOn = "SOUND: ON";
         public string soundOff = "SOUND: OFF";
 
-        [Header("Обучение")]
-        public GameObject tutorialGroup;
-        public PixelButton tutorialBack;
-
         public void ShowPage(Page page)
         {
             if (mainGroup == null) return; // префаб собран старой версией сборщика — пересобери
             mainGroup.SetActive(page == Page.Main);
             settingsGroup.SetActive(page == Page.Settings);
-            if (tutorialGroup != null) tutorialGroup.SetActive(page == Page.Tutorial);
         }
 
         public void SetFullscreenLabel(bool full)

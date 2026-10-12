@@ -1,7 +1,7 @@
 // Команда редактора CatTanks → UI → Собрать префабы UI.
 // 1) Сохраняет сгенерированные кодом пиксельные заготовки (подложка, стрелка, круг…) в PNG — префабы
 //    не могут ссылаться на картинки, созданные в памяти.
-// 2) Собирает UI по теме (GameUIBuilder) и сохраняет: Hud, Banner, Pause, MainMenu — отдельные префабы,
+// 2) Собирает UI по теме (GameUIBuilder) и сохраняет: Hud, Banner, Pause, MainMenu, Tutorial — отдельные префабы,
 //    GameCanvas — холст, в который они вложены.
 // 3) Подставляет GameCanvas в GameUI открытой сцены.
 // Пересборка ПЕРЕЗАПИСЫВАЕТ ручные правки в этих префабах — команда спросит подтверждение.
@@ -38,6 +38,7 @@ namespace CatTanks.EditorTools
                 SaveScreen(view.banner.gameObject, "Banner");
                 SaveScreen(view.pause.gameObject, "Pause");
                 SaveScreen(view.menu.gameObject, "MainMenu");
+                SaveScreen(view.tutorial.gameObject, "Tutorial");
 
                 var canvas = PrefabUtility.SaveAsPrefabAsset(view.gameObject, UiPaths.CanvasPrefab);
                 AssignToScene(canvas.GetComponent<GameUIView>(), theme);
@@ -73,7 +74,7 @@ namespace CatTanks.EditorTools
             if (t.pixelPanel == null) t.pixelPanel = SavePng(UIFactory.PixelPanelSprite(), "pixel_panel", new Vector4(4, 4, 4, 4), FilterMode.Point);
             if (t.circle == null) t.circle = SavePng(Prims.Circle, "circle", Vector4.zero, FilterMode.Bilinear);
             if (t.ring == null) t.ring = SavePng(Prims.Ring, "ring", Vector4.zero, FilterMode.Bilinear);
-            if (t.triangle == null) t.triangle = SavePng(Prims.Triangle, "triangle", Vector4.zero, FilterMode.Bilinear);
+            if (t.pixelArrow == null) t.pixelArrow = SavePng(UIFactory.PixelArrowSprite(), "pixel_arrow", Vector4.zero, FilterMode.Point);
             // палитру могли поменять в теме — плашку паузы перерисовываем всегда
             t.paperPanel = SavePng(UIFactory.PaperSprite(t.pauseInk, t.pausePaperLight, t.pausePaper, t.pausePaperShade,
                                                          new Color32(0, 0, 0, 110)), "paper_panel", new Vector4(4, 4, 4, 4), FilterMode.Point);
@@ -90,20 +91,24 @@ namespace CatTanks.EditorTools
             FillFromArt(ref t.pauseTutorialButton, "pause_tutorial");
             FillFromArt(ref t.pauseSettingsButton, "pause_settings");
             FillFromArt(ref t.pauseMainMenuButton, "pause_main_menu");
+            FillFromArt(ref t.nextButton, "button_next");
+            FillFromArt(ref t.goButton, "button_go");
+            FillFromArt(ref t.skipButton, "button_skip");
+            FillFromArt(ref t.tutorialFish, "finish_003", "Assets/Art/Environment");
             foreach (var s in new[] { t.startButton, t.tutorialButton, t.settingsButton, t.exitButton,
                                       t.heartFull, t.heartEmpty, t.pauseContinueButton, t.pauseRestartButton, t.pauseTutorialButton,
-                                      t.pauseSettingsButton, t.pauseMainMenuButton })
+                                      t.pauseSettingsButton, t.pauseMainMenuButton, t.nextButton, t.goButton, t.skipButton })
                 MakeCrisp(s);
 
             EditorUtility.SetDirty(t);
             AssetDatabase.SaveAssets();
         }
 
-        /// <summary>Пустое поле темы → спрайт из Assets/Art/UI/{file}.png, если такая картинка есть.</summary>
-        static void FillFromArt(ref Sprite field, string file)
+        /// <summary>Пустое поле темы → спрайт из {folder}/{file}.png, если такая картинка есть.</summary>
+        static void FillFromArt(ref Sprite field, string file, string folder = "Assets/Art/UI")
         {
             if (field != null) return;
-            foreach (var a in AssetDatabase.LoadAllAssetsAtPath($"Assets/Art/UI/{file}.png"))
+            foreach (var a in AssetDatabase.LoadAllAssetsAtPath($"{folder}/{file}.png"))
                 if (a is Sprite s) { field = s; return; }
         }
 
