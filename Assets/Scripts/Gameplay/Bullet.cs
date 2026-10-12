@@ -1,5 +1,8 @@
 // Снаряд с рикошетом. Без коллайдера и без Rigidbody: каждый кадр делает CircleCast
 // и сам отражается от стен через Vector2.Reflect — так углы всегда точные.
+// Эффекты и звук снаряд не рисует сам — только сообщает о событиях (Fired, Bounced, HitTarget, HitWall).
+// Их слушает FxPlayer (см. GameFlow → Fx Library); звук можно повесить туда же.
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -18,6 +21,15 @@ namespace CatTanks
         public Vector2 Direction { get; private set; }
         public int Bounces { get; private set; }
 
+        // ----- события для эффектов и звука -----
+        public static event Action<Bullet> Fired;                     // только что вылетел из ствола
+        public static event Action<Vector2, Vector2> Bounced;          // (точка, нормаль стены)
+        public static event Action<Vector2, Health> HitTarget;         // попал в кого-то со здоровьем
+        public static event Action<Vector2> HitWall;                   // разбился о стену (кончились отскоки)
+
+        /// <summary>Размер спрайта снаряда в юнитах (по большей стороне), если он задан спрайтом.</summary>
+        public const float SpriteSize = 0.32f;
+
         static readonly List<Bullet> Alive = new List<Bullet>();
         float _dieAt;
 
@@ -29,14 +41,22 @@ namespace CatTanks
             return n;
         }
 
-        /// <summary>Создаёт снаряд. prefab можно не задавать — будет кружок-примитив.</summary>
+        /// <summary>
+        /// Создаёт снаряд. Вид: prefab, иначе sprite (в исходных цветах), иначе кружок-примитив цвета color.
+        /// </summary>
         public static Bullet Spawn(Vector2 position, Vector2 direction, GameObject owner, Color color,
-                                   float speed, int maxBounces, GameObject prefab = null)
+                                   float speed, int maxBounces, GameObject prefab = null, Sprite sprite = null)
         {
             // снаряд живёт там же, где стрелок (в корне уровня) — и удаляется вместе с уровнем
             Transform parent = owner != null ? owner.transform.parent : null;
             GameObject go;
             if (prefab != null) go = Instantiate(prefab, position, Quaternion.identity, parent);
+            else if (sprite != null)
+            {
+                Vector2 s = sprite.bounds.size;
+                float k = SpriteSize / Mathf.Max(0.01f, Mathf.Max(s.x, s.y));
+                go = Prims.Create("Bullet", parent, sprite, Color.white, position, Vector2.one * k, 20);
+            }
             else go = Prims.Create("Bullet", parent, Prims.Circle, color, position, Vector2.one * 0.24f, 20);
 
             var b = go.GetComponent<Bullet>();
@@ -47,6 +67,7 @@ namespace CatTanks
             b.speed = speed;
             b.maxBounces = maxBounces;
             b.SetDirection(direction);
+            Fired?.Invoke(b);
             return b;
         }
 
@@ -80,13 +101,15 @@ namespace CatTanks
                 if (hp != null)
                 {
                     if (Health.CanHurt(Team, hp)) hp.Damage(damage); // без friendly fire снаряд просто гаснет о своего
-                    Explode(hit.centroid);
+                    HitTarget?.Invoke(hit.centroid, hp);
+                    Destroy(gameObject);
                     return;
                 }
 
                 if (Bounces >= maxBounces)
                 {
-                    Explode(hit.centroid);
+                    HitWall?.Invoke(hit.centroid);
+                    Destroy(gameObject);
                     return;
                 }
 
@@ -94,21 +117,8 @@ namespace CatTanks
                 remaining -= hit.distance;
                 transform.position = hit.centroid + hit.normal * Ricochet.Skin;
                 SetDirection(Vector2.Reflect(Direction, hit.normal));
-                SpawnSpark(hit.point);
+                Bounced?.Invoke(hit.point, hit.normal);
             }
-        }
-
-        void Explode(Vector2 at)
-        {
-            SpawnSpark(at);
-            Destroy(gameObject);
-        }
-
-        // Заглушка эффекта: короткая вспышка. Потом замени на спрайт искр от художника.
-        void SpawnSpark(Vector2 at)
-        {
-            var go = Prims.Create("Spark", transform.parent, Prims.Circle, new Color(1f, 0.9f, 0.4f, 0.8f), at, Vector2.one * 0.35f, 25);
-            Destroy(go, 0.06f);
         }
     }
 }

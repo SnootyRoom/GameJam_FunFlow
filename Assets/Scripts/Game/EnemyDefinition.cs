@@ -1,6 +1,7 @@
-// Описание типа врага: префаб и параметры. Новый враг = новый ассет (Create → CatTanks → Enemy Definition),
-// плюс строчка в EnemyType, если генератор должен ставить его сам.
-// Параметры отсюда ПЕРЕЗАПИСЫВАЮТ значения на префабе — правь баланс здесь, а не в префабе.
+// Описание типа врага — ЕДИНСТВЕННОЕ место, где настраивается враг: вид, здоровье, движение, стрельба, ИИ.
+// Ассеты лежат в Assets/Data/Enemies (Create → CatTanks → Enemy Definition), спавнер берёт их из своего списка.
+// Сколько врагов и где ставить — это правила уровня, они в LevelConfig (Assets/Data).
+// Параметры отсюда ПЕРЕЗАПИСЫВАЮТ значения на префабе и компонентах — правь баланс здесь.
 using CatTanks.Level;
 using UnityEngine;
 
@@ -10,30 +11,49 @@ namespace CatTanks
     public class EnemyDefinition : ScriptableObject
     {
         public EnemyType type;
-        [Tooltip("Пусто = заглушка из примитивов")]
+        [Tooltip("Пусто = враг собирается из спрайта ниже (или из примитивов, если и спрайта нет)")]
         public GameObject prefab;
         [Tooltip("Сколько клеток занимает по стороне (краб — 2). Клетка спавна — левая нижняя")]
         [Min(1)] public int footprint = 1;
+
+        [Header("Вид без префаба")]
+        [Tooltip("Спрайт врага. Пусто = заглушка из примитивов цвета color")]
+        public Sprite sprite;
+        [Tooltip("Куда смотрит голова на картинке, в градусах: 0 — вправо, 90 — вверх")]
+        public float spriteFacing = 90f;
+        [Tooltip("Размер врага в клетках (по большей стороне спрайта)")]
+        public float size = 0.7f;
+        public Color color = Color.red;
 
         [Header("Здоровье")]
         public int maxHp = 1;
         public float invulnerableAfterHit = 0.05f;
 
-        [Header("Движение (EnemyCrawler)")]
+        [Header("Движение и таран (EnemyCrawler)")]
         public float moveSpeed = 2.2f;
+        [Tooltip("Замечает игрока на этой дистанции, если видит его (и сам на экране)")]
         public float aggroRange = 9f;
+        [Tooltip("Слышит игрока на этой дистанции даже из-за стены")]
         public float hearRange = 4f;
+        [Tooltip("Как часто пересчитывать путь к игроку, сек")]
+        public float repathInterval = 0.4f;
         public int contactDamage = 1;
+        [Tooltip("Пауза между укусами при контакте, сек")]
+        public float contactCooldown = 1f;
 
         [Header("Стрельба (EnemyShooter)")]
         public float fireInterval = 2.2f;
         public float bulletSpeed = 6f;
+        [Tooltip("Сколько рикошетов учитывает при прицеливании и сколько делает снаряд")]
         public int maxBounces = 1;
         public float sightRange = 14f;
-
-        [Header("Заглушка (если нет префаба)")]
-        public Color color = Color.red;
-        public float size = 0.7f;
+        [Tooltip("Разброс выстрела, градусы — чтобы ИИ не был снайпером")]
+        public float aimErrorDegrees = 2f;
+        [Tooltip("Скорость поворота башни/спрайта, градусы в секунду")]
+        public float turnSpeed = 270f;
+        public Color bulletColor = new Color(1f, 0.35f, 0.9f);
+        [Tooltip("Спрайт снаряда врага. Пусто = кружок цвета bulletColor")]
+        public Sprite bulletSprite;
 
         /// <summary>Сдвиг от центра клетки спавна до центра врага.</summary>
         public Vector2 FootprintOffset => Vector2.one * ((footprint - 1) * 0.5f);
@@ -56,7 +76,9 @@ namespace CatTanks
                 crawler.speed = moveSpeed;
                 crawler.aggroRange = aggroRange;
                 crawler.hearRange = hearRange;
+                crawler.repathInterval = repathInterval;
                 crawler.contactDamage = contactDamage;
+                crawler.contactCooldown = contactCooldown;
             }
 
             var shooter = go.GetComponentInChildren<EnemyShooter>();
@@ -66,6 +88,10 @@ namespace CatTanks
                 shooter.bulletSpeed = bulletSpeed;
                 shooter.maxBounces = maxBounces;
                 shooter.sightRange = sightRange;
+                shooter.aimErrorDegrees = aimErrorDegrees;
+                shooter.turretTurnSpeed = turnSpeed;
+                shooter.bulletColor = bulletColor;
+                shooter.bulletSprite = bulletSprite;
             }
         }
     }

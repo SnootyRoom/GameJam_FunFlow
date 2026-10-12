@@ -16,6 +16,10 @@ namespace CatTanks
         [Tooltip("Пресет генерации. Пусто в редакторе = подставится первый LevelConfig из проекта")]
         public LevelConfig config;
 
+        [Header("Эффекты")]
+        [Tooltip("Картинки эффектов: выстрел, рикошет, попадание, смерть врага. Пусто в редакторе = подставится из проекта")]
+        public FxLibrary fx;
+
         [Header("Правила")]
         [Tooltip("Если в сцене нет UI с меню, игра начнётся сразу")]
         public bool autoStart = true;
@@ -43,6 +47,7 @@ namespace CatTanks
 
         LevelBuilder _builder;
         EntitySpawner _spawner;
+        FxPlayer _fx;
 
         LevelSettings Settings => config.generation;
 
@@ -55,11 +60,16 @@ namespace CatTanks
                 Debug.LogWarning("[GameFlow] Не назначен LevelConfig — беру настройки по умолчанию.", this);
                 config = ScriptableObject.CreateInstance<LevelConfig>();
             }
+            // без библиотеки эффекты всё равно будут — простыми кружками, чтобы попадания было видно
+            _fx = new FxPlayer(fx != null ? fx : ScriptableObject.CreateInstance<FxLibrary>());
+            _fx.Subscribe();
+            OnEnemyKilled += _fx.OnEnemyKilled;
         }
 
         void OnDestroy()
         {
             Time.timeScale = 1f;
+            _fx?.Unsubscribe(); // события снаряда статические — обязательно отписываемся
         }
 
         void Start()
@@ -155,6 +165,7 @@ namespace CatTanks
 
             var data = BspLevelGenerator.Generate(Settings, seed, Difficulty);
             var root = _builder.Build(data);
+            _fx.SetRoot(root);
             var ctx = new LevelContext
             {
                 Data = data,
@@ -236,13 +247,19 @@ namespace CatTanks
         }
 
 #if UNITY_EDITOR
+        // Пустые ссылки на ассеты-настройки подставляем сами — первый подходящий ассет в проекте.
         void OnValidate()
         {
-            if (config != null) return;
-            var guids = UnityEditor.AssetDatabase.FindAssets("t:" + nameof(LevelConfig));
-            if (guids.Length == 0) return;
-            config = UnityEditor.AssetDatabase.LoadAssetAtPath<LevelConfig>(UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]));
+            if (config == null) config = FindAsset<LevelConfig>();
+            if (fx == null) fx = FindAsset<FxLibrary>();
+        }
+
+        T FindAsset<T>() where T : ScriptableObject
+        {
+            var guids = UnityEditor.AssetDatabase.FindAssets("t:" + typeof(T).Name);
+            if (guids.Length == 0) return null;
             UnityEditor.EditorUtility.SetDirty(this);
+            return UnityEditor.AssetDatabase.LoadAssetAtPath<T>(UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]));
         }
 #endif
     }

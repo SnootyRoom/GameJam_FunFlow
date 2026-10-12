@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 1000000000000000004}
   - component: {fileID: 1000000000000000005}
   - component: {fileID: 1000000000000000006}
+  - component: {fileID: 1000000000000000007}
   m_Layer: 0
   m_Name: PlayerTank
   m_TagString: Player
@@ -30,7 +31,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.8, y: 0.8, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2000000000000000002}
@@ -54,7 +55,7 @@ CircleCollider2D:
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
-  m_Radius: 0.5
+  m_Radius: 0.4
 --- !u!114 &1000000000000000004
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -92,6 +93,7 @@ MonoBehaviour:
   fireCooldown: 0.3
   maxBulletsAlive: 5
   bulletPrefab: {fileID: 0}
+  bulletSprite: {fileID: 251537664351223349, guid: 44e4112211a35a746a3339ee342faec1, type: 3}
   bulletColor: {r: 1, g: 0.95, b: 0.6, a: 1}
 --- !u!1 &2000000000000000001
 GameObject:
@@ -302,7 +304,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.5, y: 1.5, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1000000000000000002}
@@ -381,3 +383,16 @@ MonoBehaviour:
   body: {fileID: 2000000000000000003}
   periodPx: 4
   pixelsPerUnit: 16
+--- !u!114 &1000000000000000007
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000000000000000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1eba932a2db402a83401b4556aa3878, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tank: {fileID: 1000000000000000005}

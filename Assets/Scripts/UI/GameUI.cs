@@ -1,9 +1,7 @@
-// Весь интерфейс игры: главное меню, HUD (здоровье, уровень, враги, стрелка на Б, прицел),
-// пауза, экраны «Уровень пройден» и «Кот подбит». Собирается кодом при старте.
-// Повесь на любой объект в сцене. Спрайты художника назначаются в инспекторе, пустые поля = примитивы.
-using System.Collections.Generic;
+// Контроллер интерфейса: создаёт холст из префаба GameCanvas, назначает кнопкам действия и
+// переключает экраны по состоянию игры. Вёрстки здесь нет — она в префабах Assets/Prefabs/UI
+// (собираются командой CatTanks → UI → Собрать префабы UI, дальше правятся руками).
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace CatTanks.UI
 {
@@ -13,41 +11,16 @@ namespace CatTanks.UI
         public GameFlow flow;                 // пусто = найдётся сам
         public bool showMainMenu = true;      // false — игра стартует сразу, меню только по паузе
 
+        [Header("Префаб")]
+        [Tooltip("Assets/Prefabs/UI/GameCanvas. Пусто в редакторе = подставится сам")]
+        public GameUIView uiPrefab;
+        [Tooltip("Если префаба нет — UI соберётся из этой темы прямо в игре")]
+        public UiTheme fallbackTheme;
+
         [Header("Тексты")]
-        public string gameTitle = "Кот в танке";
-        public string controlsHint = "WASD — ехать   Мышь — целиться   ЛКМ — огонь   Esc — пауза";
+        public string exitBlockedText = "Deal with all the phones first!";
 
-        [Header("Спрайты художника (пусто = примитивы)")]
-        public Font font;
-        public Sprite logo;                   // 1024×512
-        public Sprite menuBackground;         // фон главного меню, 1920×1080, в исходных цветах; заполняет экран, лишнее обрезается
-        public Sprite heartFull;              // 48×48
-        public Sprite heartEmpty;
-        public Sprite exitArrow;              // 48×48, смотрит вправо
-        public Sprite crosshair;              // 32×32
-        [Tooltip("Плашка кнопки (start_button_1). Уголки из той же картинки подставятся сами")]
-        public Sprite buttonSprite;
-        public Sprite buttonCornerTopLeft;     // start_button_0
-        public Sprite buttonCornerBottomRight; // start_button_2
-        public Sprite panelSprite;
-
-        [Header("Цвета")]
-        public Color accent = new Color(1f, 0.65f, 0.25f);    // рыжий кот
-        public Color buttonColor = new Color(0.22f, 0.24f, 0.28f, 0.95f);
-        public Color textColor = Color.white;
-        public Color dimColor = new Color(0f, 0f, 0f, 0.6f);
-        [Tooltip("Подложка под кнопками меню и паузы")]
-        public Color menuPanelColor = new Color(1f, 1f, 1f, 0.55f);
-        public Color menuHintColor = new Color(0.12f, 0.12f, 0.15f, 1f);
-        public Color heartColor = new Color(0.95f, 0.3f, 0.35f);
-
-        Font _font;
-        RectTransform _canvasRect;
-        GameObject _hud, _menu, _pause, _banner;
-        RectTransform _hearts, _arrow, _crosshair;
-        Text _levelText, _enemiesText, _bannerTitle, _bannerSub, _toastText;
-        readonly List<Image> _heartImages = new List<Image>();
-        float _toastUntil;
+        GameUIView _ui;
 
         // ------------------------------------------------------------------ Жизненный цикл
 
@@ -56,26 +29,32 @@ namespace CatTanks.UI
             if (flow == null)
             {
 #if UNITY_2023_1_OR_NEWER
-                flow = FindFirstObjectByType<GameFlow>();
+                flow = FindAnyObjectByType<GameFlow>();
 #else
                 flow = FindObjectOfType<GameFlow>();
 #endif
             }
             if (flow == null) { Debug.LogError("[GameUI] В сцене нет GameFlow."); enabled = false; return; }
-            if (showMainMenu) flow.autoStart = false; // ждём кнопку «Играть»
+            if (showMainMenu) flow.autoStart = false; // ждём кнопку «Play»
 
-            _font = font != null ? font : UIFactory.DefaultFont();
             UIFactory.EnsureEventSystem();
-            Build();
+            if (uiPrefab != null) _ui = Instantiate(uiPrefab, transform);
+            else
+            {
+                Debug.LogWarning("[GameUI] Нет префаба GameCanvas — собираю UI из темы. " +
+                                 "Создай префабы: CatTanks → UI → Собрать префабы UI.", this);
+                _ui = GameUIBuilder.Build(transform, fallbackTheme != null ? fallbackTheme : ScriptableObject.CreateInstance<UiTheme>());
+            }
+            WireButtons();
 
             // подписываемся в Awake: GameFlow может стартовать раньше нашего Start
             flow.OnStateChanged += HandleState;
             flow.OnLevelStarted += HandleLevelStarted;
             flow.OnLevelCompleted += HandleLevelCompleted;
             flow.OnPlayerKilled += HandlePlayerKilled;
-            flow.OnPlayerHpChanged += SetHearts;
+            flow.OnPlayerHpChanged += _ui.hud.SetHearts;
             flow.OnExitBlocked += HandleExitBlocked;
-            flow.OnEnemyCountChanged += SetEnemyCount;
+            flow.OnEnemyCountChanged += _ui.hud.SetEnemies;
         }
 
         void Start()
@@ -87,281 +66,99 @@ namespace CatTanks.UI
         void OnDestroy()
         {
             Cursor.visible = true;
-            if (flow == null) return;
+            if (flow == null || _ui == null) return;
             flow.OnStateChanged -= HandleState;
             flow.OnLevelStarted -= HandleLevelStarted;
             flow.OnLevelCompleted -= HandleLevelCompleted;
             flow.OnPlayerKilled -= HandlePlayerKilled;
-            flow.OnPlayerHpChanged -= SetHearts;
+            flow.OnPlayerHpChanged -= _ui.hud.SetHearts;
             flow.OnExitBlocked -= HandleExitBlocked;
-            flow.OnEnemyCountChanged -= SetEnemyCount;
+            flow.OnEnemyCountChanged -= _ui.hud.SetEnemies;
         }
 
         void Update()
         {
             if (flow == null) return;
-            var ctx = flow.Current;
-
-            UpdateExitArrow(ctx);
-            UpdateCrosshair();
-            _toastText.gameObject.SetActive(Time.unscaledTime < _toastUntil);
+            if (_ui.hud.gameObject.activeSelf)
+                _ui.hud.UpdateExitArrow(Camera.main, flow.Current != null ? flow.Current.Exit : null);
+            _ui.hud.UpdateCrosshair(GameInput.MouseScreen());
         }
 
-        // ------------------------------------------------------------------ Сборка
+        // ------------------------------------------------------------------ Кнопки
 
-        void Build()
+        void WireButtons()
         {
-            var canvas = UIFactory.CreateCanvas(transform, "GameCanvas", 100);
-            _canvasRect = (RectTransform)canvas.transform;
-            BuildHud(canvas.transform);
-            BuildBanner(canvas.transform);
-            BuildPause(canvas.transform);
-            BuildMenu(canvas.transform);
-            _crosshair = UIFactory.Rect(canvas.transform, "Crosshair", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(36, 36));
-            _crosshair.pivot = new Vector2(0.5f, 0.5f);
-            UIFactory.Image(_crosshair, crosshair != null ? crosshair : Prims.Ring, crosshair != null ? Color.white : accent);
-        }
-
-        void BuildHud(Transform root)
-        {
-            _hud = UIFactory.Stretch(root, "HUD").gameObject;
-            var t = _hud.transform;
-
-            _hearts = UIFactory.Rect(t, "Hearts", new Vector2(0, 1), new Vector2(32, -28), new Vector2(400, 56));
-            var row = _hearts.gameObject.AddComponent<HorizontalLayoutGroup>();
-            row.spacing = 10;
-            row.childControlWidth = row.childControlHeight = false;
-            row.childForceExpandWidth = row.childForceExpandHeight = false;
-
-            _levelText = UIFactory.Text(UIFactory.Rect(t, "Level", new Vector2(0.5f, 1), new Vector2(0, -24), new Vector2(400, 56)),
-                                        _font, "Уровень 1", 32, TextAnchor.MiddleCenter, textColor);
-            _enemiesText = UIFactory.Text(UIFactory.Rect(t, "Enemies", new Vector2(1, 1), new Vector2(-32, -24), new Vector2(400, 56)),
-                                          _font, "Врагов: 0", 32, TextAnchor.MiddleRight, textColor);
-            _toastText = UIFactory.Text(UIFactory.Rect(t, "Toast", new Vector2(0.5f, 1), new Vector2(0, -110), new Vector2(1200, 60)),
-                                        _font, "", 24, TextAnchor.MiddleCenter, accent);
-
-            _arrow = UIFactory.Rect(t, "ExitArrow", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(56, 56));
-            _arrow.pivot = new Vector2(0.5f, 0.5f);
-            UIFactory.Image(_arrow, exitArrow != null ? exitArrow : Prims.Triangle, exitArrow != null ? Color.white : new Color(1f, 0.85f, 0.2f));
-        }
-
-        void BuildBanner(Transform root)
-        {
-            var rt = UIFactory.Stretch(root, "Banner");
-            _banner = rt.gameObject;
-            var strip = UIFactory.Rect(rt, "Strip", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(2200, 240));
-            strip.pivot = new Vector2(0.5f, 0.5f);
-            UIFactory.Image(strip, panelSprite != null ? panelSprite : Prims.Square, panelSprite != null ? Color.white : dimColor);
-            _bannerTitle = UIFactory.Text(UIFactory.Rect(strip, "Title", new Vector2(0.5f, 0.5f), new Vector2(0, 30), new Vector2(1600, 100)),
-                                          _font, "", 64, TextAnchor.MiddleCenter, accent);
-            _bannerTitle.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-            _bannerSub = UIFactory.Text(UIFactory.Rect(strip, "Sub", new Vector2(0.5f, 0.5f), new Vector2(0, -50), new Vector2(1600, 60)),
-                                        _font, "", 32, TextAnchor.MiddleCenter, textColor);
-            _bannerSub.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-        }
-
-        void BuildPause(Transform root)
-        {
-            var rt = UIFactory.Stretch(root, "Pause");
-            _pause = rt.gameObject;
-            UIFactory.Image(rt, Prims.Square, dimColor, true); // блокирует клики по игре
-
-            var panel = UIFactory.Rect(rt, "Panel", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560, 600));
-            panel.pivot = new Vector2(0.5f, 0.5f);
-            UIFactory.PixelPanel(panel, menuPanelColor);
-            Title(panel, "Пауза", -100, 64);
-            MenuButton(panel, -240, "Продолжить", () => flow.Pause(false));
-            MenuButton(panel, -360, "Заново", () => flow.RestartLevel());
-            MenuButton(panel, -480, "В меню", () => flow.GoToMenu());
-        }
-
-        void BuildMenu(Transform root)
-        {
-            var rt = UIFactory.Stretch(root, "MainMenu");
-            _menu = rt.gameObject;
-            UIFactory.Image(rt, Prims.Square, new Color(0.12f, 0.13f, 0.15f, 1f), true);
-
-            if (menuBackground != null)
+            var m = _ui.menu;
+            m.play.onActivated.AddListener(flow.StartNewGame);
+            m.settings.onActivated.AddListener(() => m.ShowSettings(true));
+            m.quit.onActivated.AddListener(flow.Quit);
+            m.back.onActivated.AddListener(() => m.ShowSettings(false));
+            m.fullscreen.onActivated.AddListener(() =>
             {
-                // как background-size: cover — на любом соотношении сторон без полос и растяжения
-                var bg = UIFactory.Rect(rt, "Background", new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
-                UIFactory.Image(bg, menuBackground, Color.white);
-                var fit = bg.gameObject.AddComponent<AspectRatioFitter>();
-                fit.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
-                fit.aspectRatio = menuBackground.rect.width / menuBackground.rect.height;
-            }
+                bool full = !Screen.fullScreen; // Screen.fullScreen обновится только в следующем кадре — запоминаем сами
+                Screen.fullScreen = full;
+                m.SetFullscreenLabel(full);
+            });
+            m.SetFullscreenLabel(Screen.fullScreen);
 
-            // подложка слева — правая половина экрана остаётся под кота на фоне
-            var panel = UIFactory.Rect(rt, "Panel", new Vector2(0, 0.5f), new Vector2(120, 0), new Vector2(600, 760));
-            UIFactory.PixelPanel(panel, menuPanelColor);
-
-            if (logo != null)
-            {
-                var l = UIFactory.Rect(panel, "Logo", new Vector2(0.5f, 1), new Vector2(0, -32), new Vector2(520, 260));
-                UIFactory.Image(l, logo, Color.white).preserveAspect = true;
-            }
-            else Title(panel, gameTitle, -120, 48);
-
-            MenuButton(panel, -330, "Играть", () => flow.StartNewGame());
-            MenuButton(panel, -450, "Выход", () => flow.Quit());
-
-            // подсказка по управлению — столбиком внизу подложки
-            var hint = UIFactory.Text(UIFactory.Rect(panel, "Hint", new Vector2(0.5f, 0), new Vector2(0, 40), new Vector2(520, 150)),
-                                      _font, controlsHint.Replace("   ", "\n"), 16, TextAnchor.LowerCenter, menuHintColor);
-            hint.lineSpacing = 1.6f;
-            UIFactory.HardShadow(hint, 0, Color.clear);
+            var p = _ui.pause;
+            p.resume.onActivated.AddListener(() => flow.Pause(false));
+            p.restart.onActivated.AddListener(flow.RestartLevel);
+            p.mainMenu.onActivated.AddListener(flow.GoToMenu);
         }
-
-        void Title(RectTransform panel, string text, float y, int size)
-        {
-            var t = UIFactory.Text(UIFactory.Rect(panel, "Title", new Vector2(0.5f, 1), new Vector2(0, y), new Vector2(560, 120)),
-                                   _font, text, size, TextAnchor.MiddleCenter, accent);
-            t.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-            UIFactory.HardShadow(t, 6, Color.black); // жёсткая пиксельная тень
-        }
-
-        void MenuButton(RectTransform panel, float y, string label, UnityEngine.Events.UnityAction onClick)
-        {
-            PixelButton.Create(panel, label, new Vector2(0.5f, 1), new Vector2(0, y), label, new PixelButton.Style
-            {
-                plate = buttonSprite,
-                cornerTopLeft = buttonCornerTopLeft,
-                cornerBottomRight = buttonCornerBottomRight,
-                plateColor = buttonColor,
-                labelColor = textColor,
-                hoverColor = accent,
-                font = _font,
-                fontSize = 32,
-            }, onClick);
-        }
-
-#if UNITY_EDITOR
-        // Кнопка нарезана на 3 спрайта. Какой бы из них ни назначили в Button Sprite, раскладываем по размеру:
-        // самый большой — плашка, из остальных крайний левый — левый верхний уголок, крайний правый — правый нижний.
-        void OnValidate()
-        {
-            if (buttonSprite == null) return;
-            var path = UnityEditor.AssetDatabase.GetAssetPath(buttonSprite);
-            var parts = new List<Sprite>();
-            foreach (var a in UnityEditor.AssetDatabase.LoadAllAssetsAtPath(path))
-                if (a is Sprite s) parts.Add(s);
-            if (parts.Count < 3) return;
-
-            Sprite plate = parts[0];
-            foreach (var s in parts) if (s.rect.width * s.rect.height > plate.rect.width * plate.rect.height) plate = s;
-            Sprite left = null, right = null;
-            foreach (var s in parts)
-            {
-                if (s == plate) continue;
-                if (left == null || s.rect.x < left.rect.x) left = s;
-                if (right == null || s.rect.x > right.rect.x) right = s;
-            }
-            if (buttonSprite == plate && buttonCornerTopLeft == left && buttonCornerBottomRight == right) return;
-            buttonSprite = plate;
-            buttonCornerTopLeft = left;
-            buttonCornerBottomRight = right;
-            UnityEditor.EditorUtility.SetDirty(this);
-        }
-#endif
 
         // ------------------------------------------------------------------ Реакция на игру
 
         void HandleState(GameState s)
         {
-            _menu.SetActive(s == GameState.Menu);
-            _pause.SetActive(s == GameState.Paused);
-            _hud.SetActive(s != GameState.Menu);
-            _banner.SetActive(s == GameState.LevelComplete || s == GameState.PlayerDead);
+            _ui.menu.gameObject.SetActive(s == GameState.Menu);
+            if (s == GameState.Menu) _ui.menu.ShowSettings(false); // в меню всегда с главной колонки
+            _ui.pause.gameObject.SetActive(s == GameState.Paused);
+            _ui.hud.gameObject.SetActive(s != GameState.Menu);
+            _ui.banner.gameObject.SetActive(s == GameState.LevelComplete || s == GameState.PlayerDead);
             bool playing = s == GameState.Playing;
-            _crosshair.gameObject.SetActive(playing);
+            _ui.hud.SetCrosshairVisible(playing);
             Cursor.visible = !playing; // в бою вместо курсора — прицел
         }
 
         void HandleLevelStarted(LevelContext ctx)
         {
-            _levelText.text = "Уровень " + ctx.LevelNumber;
-            SetEnemyCount(ctx.AliveEnemyCount());
-            if (ctx.PlayerHealth != null) SetHearts(ctx.PlayerHealth.Hp, ctx.PlayerHealth.maxHp);
+            _ui.hud.SetLevel(ctx.LevelNumber);
+            _ui.hud.SetEnemies(ctx.AliveEnemyCount());
+            if (ctx.PlayerHealth != null) _ui.hud.SetHearts(ctx.PlayerHealth.Hp, ctx.PlayerHealth.maxHp);
         }
 
-        void HandleLevelCompleted(LevelContext ctx)
-        {
-            _bannerTitle.text = "Уровень " + ctx.LevelNumber + " пройден!";
-            _bannerSub.text = "Телефоны в панике. Едем дальше...";
-        }
+        void HandleLevelCompleted(LevelContext ctx) => _ui.banner.ShowLevelComplete(ctx.LevelNumber);
+        void HandlePlayerKilled(LevelContext ctx) => _ui.banner.ShowDeath();
+        void HandleExitBlocked() => _ui.hud.ShowToast(exitBlockedText, 1.5f);
 
-        void HandlePlayerKilled(LevelContext ctx)
+#if UNITY_EDITOR
+        // Пустые ссылки подставляем сами: префаб холста и тему из проекта.
+        void OnValidate()
         {
-            _bannerTitle.text = "Кота подбили!";
-            _bannerSub.text = "Пробуем ещё раз...";
-        }
-
-        void HandleExitBlocked()
-        {
-            _toastText.text = "Сначала разберись со всеми телефонами!";
-            _toastUntil = Time.unscaledTime + 1.5f;
-        }
-
-        void SetEnemyCount(int alive)
-        {
-            _enemiesText.text = "Врагов: " + alive;
-        }
-
-        void SetHearts(int hp, int max)
-        {
-            while (_heartImages.Count < max)
+            if (uiPrefab == null)
             {
-                var rt = UIFactory.Rect(_hearts, "Heart", new Vector2(0, 0.5f), Vector2.zero, new Vector2(48, 48));
-                _heartImages.Add(UIFactory.Image(rt, heartFull != null ? heartFull : Prims.Circle, Color.white));
+                var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(UiPaths.CanvasPrefab);
+                if (prefab != null) { uiPrefab = prefab.GetComponent<GameUIView>(); UnityEditor.EditorUtility.SetDirty(this); }
             }
-            for (int i = 0; i < _heartImages.Count; i++)
+            if (fallbackTheme == null)
             {
-                var img = _heartImages[i];
-                img.gameObject.SetActive(i < max);
-                bool full = i < hp;
-                if (heartFull != null)
+                var guids = UnityEditor.AssetDatabase.FindAssets("t:" + nameof(UiTheme));
+                if (guids.Length > 0)
                 {
-                    img.sprite = full || heartEmpty == null ? heartFull : heartEmpty;
-                    img.color = full || heartEmpty != null ? Color.white : new Color(1, 1, 1, 0.25f);
-                }
-                else
-                {
-                    img.color = full ? heartColor : new Color(0.3f, 0.3f, 0.3f, 0.6f);
+                    fallbackTheme = UnityEditor.AssetDatabase.LoadAssetAtPath<UiTheme>(UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]));
+                    UnityEditor.EditorUtility.SetDirty(this);
                 }
             }
         }
+#endif
+    }
 
-        // ------------------------------------------------------------------ Стрелка на Б и прицел
-
-        void UpdateExitArrow(LevelContext ctx)
-        {
-            var cam = Camera.main;
-            bool show = _hud.activeSelf && ctx != null && ctx.Exit != null && cam != null;
-            if (show)
-            {
-                Vector3 vp = cam.WorldToViewportPoint(ctx.Exit.position);
-                Vector2 d = new Vector2(vp.x - 0.5f, vp.y - 0.5f);
-                bool onScreen = Mathf.Abs(d.x) < 0.47f && Mathf.Abs(d.y) < 0.47f;
-                show = !onScreen && d.sqrMagnitude > 0.0001f;
-                if (show)
-                {
-                    // прижимаем к краю экрана по направлению на выход
-                    float k = 0.44f / Mathf.Max(Mathf.Abs(d.x), Mathf.Abs(d.y));
-                    Vector2 p = new Vector2(0.5f, 0.5f) + d * k;
-                    _arrow.anchorMin = _arrow.anchorMax = p;
-                    _arrow.anchoredPosition = Vector2.zero;
-                    float angle = Mathf.Atan2(d.y * Screen.height, d.x * Screen.width) * Mathf.Rad2Deg;
-                    _arrow.localRotation = Quaternion.Euler(0, 0, angle);
-                }
-            }
-            _arrow.gameObject.SetActive(show);
-        }
-
-        void UpdateCrosshair()
-        {
-            if (!_crosshair.gameObject.activeSelf) return;
-            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(_canvasRect, GameInput.MouseScreen(), null, out var local))
-                _crosshair.anchoredPosition = local;
-        }
+    /// <summary>Где лежат префабы UI. Общие для сборщика и контроллера.</summary>
+    public static class UiPaths
+    {
+        public const string Folder = "Assets/Prefabs/UI";
+        public const string CanvasPrefab = Folder + "/GameCanvas.prefab";
+        public const string GeneratedArt = "Assets/Art/UI/Generated";
     }
 }

@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 3d773410ce32dc3498e771cbae6e6a63
+guid: bf3bc9dee7edc8c44b542c0966bb48db
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 7708467723429685855
-    second: fon_003_0
+      213: -3367932149377307684
+    second: bug_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -37,7 +37,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: 0
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -115,13 +115,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: fon_003_0
+      name: bug_0
       rect:
         serializedVersion: 2
         x: 0
-        y: 0
-        width: 736
-        height: 414
+        y: 5
+        width: 46
+        height: 37
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -130,8 +130,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: f5a2791ad8af9fa60800000000000000
-      internalID: 7708467723429685855
+      spriteID: cdb6fb0ed83b241d0800000000000000
+      internalID: -3367932149377307684
       vertices: []
       indices: 
       edges: []
@@ -150,7 +150,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      fon_003_0: 7708467723429685855
+      bug_0: -3367932149377307684
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

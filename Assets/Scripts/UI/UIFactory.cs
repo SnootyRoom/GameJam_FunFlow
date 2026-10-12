@@ -169,9 +169,9 @@ namespace CatTanks.UI
         }
 
         /// <summary>Пиксельная подложка. pixelScale — сколько экранных пикселей (при 1920×1080) на пиксель рамки.</summary>
-        public static Image PixelPanel(RectTransform rt, Color color, float pixelScale = 4f)
+        public static Image PixelPanel(RectTransform rt, Sprite sprite, Color color, float pixelScale = 4f)
         {
-            var img = Image(rt, PixelPanelSprite(), color, true);
+            var img = Image(rt, sprite != null ? sprite : PixelPanelSprite(), color, true);
             img.type = UnityEngine.UI.Image.Type.Sliced;
             img.pixelsPerUnitMultiplier = 1f / pixelScale;
             return img;

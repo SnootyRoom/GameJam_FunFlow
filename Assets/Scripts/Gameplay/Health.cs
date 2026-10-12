@@ -11,6 +11,8 @@ namespace CatTanks
         public int maxHp = 1;
         public Team team = Team.Enemy;
         public float invulnerableAfterHit = 0.5f;
+        [Tooltip("Цвет вспышки при попадании (умножается на спрайт: белый у спрайтов художника не виден)")]
+        public Color flashColor = new Color(1f, 0.3f, 0.3f);
 
         /// <summary>Ранят ли снаряды своих. Задаётся в GameFlow (галочка friendlyFire).</summary>
         public static bool FriendlyFire = true;
@@ -77,7 +79,7 @@ namespace CatTanks
         {
             if (_renderers == null || _renderers.Length == 0) CacheRenderers();
             for (int i = 0; i < _renderers.Length; i++)
-                if (_renderers[i] != null) _renderers[i].color = on ? Color.white : _colors[i];
+                if (_renderers[i] != null) _renderers[i].color = on ? flashColor : _colors[i];
         }
 
         void Die()

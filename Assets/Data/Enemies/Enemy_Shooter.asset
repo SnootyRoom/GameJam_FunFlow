@@ -26,4 +26,6 @@ MonoBehaviour:
   maxBounces: 1
   sightRange: 14
   color: {r: 0.6, g: 0.25, b: 0.8, a: 1}
-  size: 0.8
+  size: 1.2
+  sprite: {fileID: -3367932149377307684, guid: bf3bc9dee7edc8c44b542c0966bb48db, type: 3}
+  spriteFacing: 0

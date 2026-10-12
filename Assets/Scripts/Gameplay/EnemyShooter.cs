@@ -18,6 +18,7 @@ namespace CatTanks
         public float aimErrorDegrees = 2f;    // небольшой разброс, чтобы ИИ не был снайпером
         public float turretTurnSpeed = 270f;
         public GameObject bulletPrefab;
+        public Sprite bulletSprite;           // пусто = кружок цвета bulletColor
         public Color bulletColor = new Color(1f, 0.35f, 0.9f);
         [Tooltip("Стреляет, только если сам виден на экране — игрок всегда видит, кто по нему бьёт")]
         public bool onlyWhenOnScreen = true;
@@ -25,8 +26,11 @@ namespace CatTanks
         public float screenInset = 0.5f;
         public bool drawDebugShot = true;
 
+        [Tooltip("Между выстрелами башня (или весь спрайт стрелка) смотрит на игрока")]
+        public bool trackPlayer = true;
+
         LevelContext _ctx;
-        float _timer;
+        float _timer, _holdAimUntil;
         Vector2 _aimDir = Vector2.right;
         readonly List<Vector2> _debugPoints = new List<Vector2>();
 
@@ -41,6 +45,10 @@ namespace CatTanks
         {
             if (_ctx == null || !_ctx.PlayerAlive) return;
             var player = _ctx.Player.transform;
+
+            // между выстрелами следим взглядом за игроком, а после выстрела ненадолго держим направление выстрела
+            if (trackPlayer && Time.time >= _holdAimUntil && Vector2.Distance(transform.position, player.position) <= sightRange)
+                _aimDir = ((Vector2)player.position - (Vector2)transform.position).normalized;
 
             if (turret != null)
             {
@@ -62,7 +70,8 @@ namespace CatTanks
             float err = Random.Range(-aimErrorDegrees, aimErrorDegrees);
             dir = Quaternion.Euler(0, 0, err) * dir;
             _aimDir = dir;
-            Bullet.Spawn(Muzzle(dir), dir, gameObject, bulletColor, bulletSpeed, maxBounces, bulletPrefab);
+            _holdAimUntil = Time.time + 0.5f;
+            Bullet.Spawn(Muzzle(dir), dir, gameObject, bulletColor, bulletSpeed, maxBounces, bulletPrefab, bulletSprite);
             _timer = fireInterval * Random.Range(0.8f, 1.2f);
         }
 

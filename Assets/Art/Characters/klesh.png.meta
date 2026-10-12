@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 180ab287e940a4642b98c8a7b9946672
+guid: dcaa6aad933605244a3e0c264fa5d866
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 8693207090221149990
-    second: finish_002_0
+      213: 4012946058252781560
+    second: klesh_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -37,7 +37,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: 0
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -115,13 +115,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: finish_002_0
+      name: klesh_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 128
-        height: 128
+        width: 32
+        height: 31
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -130,8 +130,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 62fe98b3ac974a870800000000000000
-      internalID: 8693207090221149990
+      spriteID: 8f706f0bd29d0b730800000000000000
+      internalID: 4012946058252781560
       vertices: []
       indices: 
       edges: []
@@ -150,7 +150,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      finish_002_0: 8693207090221149990
+      klesh_0: 4012946058252781560
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

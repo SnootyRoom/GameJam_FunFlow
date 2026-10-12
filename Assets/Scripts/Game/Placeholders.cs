@@ -28,11 +28,61 @@ namespace CatTanks
             hp.maxHp = 3;
             hp.ResetHp();
             go.AddComponent<PlayerTank>().turret = turret;
+            go.AddComponent<AimPreview>();
             return go;
         }
 
         /// <summary>Враг по описанию. Параметры (hp, скорость…) потом проставит EnemyDefinition.ApplyTo.</summary>
         public static GameObject Enemy(EnemyDefinition def, Transform parent, Vector2 pos)
+        {
+            return def.sprite != null ? SpriteEnemy(def, parent, pos) : PrimitiveEnemy(def, parent, pos);
+        }
+
+        /// <summary>
+        /// Враг из спрайта художника. Кто ходит (ползун, краб) — разворачивается по ходу движения вместе с телом;
+        /// кто только стреляет (стрелок) — спрайт сидит на «башне» и поворачивается туда, куда целится.
+        /// </summary>
+        static GameObject SpriteEnemy(EnemyDefinition def, Transform parent, Vector2 pos)
+        {
+            bool walks = def.type != EnemyType.Shooter;
+            bool shoots = def.type != EnemyType.Crawler;
+
+            var go = new GameObject(def.type.ToString());
+            go.transform.SetParent(parent, false);
+            go.transform.position = pos;
+
+            Transform turret = null;
+            if (shoots)
+            {
+                turret = new GameObject("Turret").transform;
+                turret.SetParent(go.transform, false);
+            }
+
+            // картинка поворачивается так, чтобы «вперёд» смотрело вдоль +X — как у всей логики движения и прицела
+            var visualParent = walks ? go.transform : turret;
+            var art = new GameObject("Sprite");
+            art.transform.SetParent(visualParent, false);
+            art.transform.localRotation = Quaternion.Euler(0, 0, -def.spriteFacing);
+            var sr = art.AddComponent<SpriteRenderer>();
+            sr.sprite = def.sprite;
+            sr.sortingOrder = 8;
+            Vector2 s = def.sprite.bounds.size;
+            float k = def.size / Mathf.Max(0.01f, Mathf.Max(s.x, s.y));
+            art.transform.localScale = new Vector3(k, k, 1f);
+
+            go.AddComponent<CircleCollider2D>().radius = def.size * 0.45f;
+            go.AddComponent<Health>(); // после спрайта — вспышка урона запоминает его цвет в Awake
+            if (walks) go.AddComponent<EnemyCrawler>();
+            if (shoots)
+            {
+                var sh = go.AddComponent<EnemyShooter>();
+                sh.turret = walks ? null : turret; // у краба тело уже крутится при ходьбе
+                sh.bodyRadius = def.size * 0.55f;
+            }
+            return go;
+        }
+
+        static GameObject PrimitiveEnemy(EnemyDefinition def, Transform parent, Vector2 pos)
         {
             float size = def.size;
             var go = Prims.Create(def.type.ToString(), parent, Prims.Square, def.color, pos, Vector2.one * size, 8);

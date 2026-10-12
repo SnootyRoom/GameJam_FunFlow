@@ -32,6 +32,17 @@ namespace CatTanks
 #endif
         }
 
+        /// <summary>ПКМ зажата — пулемёт.</summary>
+        public static bool AltFireHeld()
+        {
+#if ENABLE_INPUT_SYSTEM
+            var m = Mouse.current;
+            return m != null && m.rightButton.isPressed;
+#else
+            return Input.GetMouseButton(1);
+#endif
+        }
+
         public static Vector2 MouseScreen()
         {
 #if ENABLE_INPUT_SYSTEM
