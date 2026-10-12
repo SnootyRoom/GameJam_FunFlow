@@ -24,16 +24,17 @@ namespace CatTanks
             public TileBase tile;
             [Tooltip("Или просто спрайт — тайл создастся автоматически и подгонится под клетку")]
             public Sprite sprite;
-            [Tooltip("Оттенок спрайта (белый = оригинал) или цвет заглушки, если нет ни тайла, ни спрайта")]
-            public Color color = Color.white;
+            [Tooltip("Цвет заглушки, если нет ни тайла, ни спрайта. Спрайты и тайлы рисуются в исходных цветах")]
+            [UnityEngine.Serialization.FormerlySerializedAs("color")]
+            public Color placeholderColor = Color.white;
             [Tooltip("Необязательно: материал для TilemapRenderer (например, Sprite-Lit для 2D-света)")]
             public Material material;
         }
 
         [Header("Тайлы")]
-        public TileLayer floor = new TileLayer { color = new Color(0.86f, 0.84f, 0.79f) };
-        public TileLayer walls = new TileLayer { color = new Color(0.27f, 0.28f, 0.31f) };
-        public TileLayer cover = new TileLayer { color = new Color(0.55f, 0.40f, 0.24f) };
+        public TileLayer floor = new TileLayer { placeholderColor = new Color(0.86f, 0.84f, 0.79f) };
+        public TileLayer walls = new TileLayer { placeholderColor = new Color(0.27f, 0.28f, 0.31f) };
+        public TileLayer cover = new TileLayer { placeholderColor = new Color(0.55f, 0.40f, 0.24f) };
 
         [Header("Tilemap в сцене (пусто = создадутся сами при запуске)")]
         [Tooltip("Создать их в сцене можно через меню компонента: ⋮ → «Создать Grid и Tilemap в сцене»")]
@@ -142,7 +143,7 @@ namespace CatTanks
             t.name = "RuntimeTile";
             t.hideFlags = HideFlags.DontSave;
             t.sprite = layer.sprite != null ? layer.sprite : Prims.Square;
-            t.color = layer.color;
+            t.color = layer.sprite != null ? Color.white : layer.placeholderColor; // спрайт художника не перекрашиваем
             t.colliderType = collider;     // Grid = коллайдер ровно на всю клетку, отскоки точные
             t.flags = TileFlags.LockAll;
 
@@ -204,6 +205,7 @@ namespace CatTanks
         static void SetupLayer(Tilemap map, TileLayer layer, int order, bool solid)
         {
             map.transform.localPosition = Vector3.zero;
+            map.color = Color.white; // цвет Tilemap умножается на все тайлы — держим исходные цвета
             var r = map.GetComponent<TilemapRenderer>();
             if (r == null) r = map.gameObject.AddComponent<TilemapRenderer>();
             r.sortingOrder = order;

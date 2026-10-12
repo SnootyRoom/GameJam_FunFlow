@@ -20,8 +20,7 @@ namespace CatTanks.UI
         [Header("Спрайты художника (пусто = примитивы)")]
         public Font font;
         public Sprite logo;                   // 1024×512
-        public Sprite menuBackground;         // фон главного меню, 1920×1080; заполняет экран, лишнее обрезается
-        public Color menuBackgroundTint = new Color(0.75f, 0.75f, 0.75f, 1f); // чуть темнее, чтобы читались кнопки
+        public Sprite menuBackground;         // фон главного меню, 1920×1080, в исходных цветах; заполняет экран, лишнее обрезается
         public Sprite heartFull;              // 48×48
         public Sprite heartEmpty;
         public Sprite exitArrow;              // 48×48, смотрит вправо
@@ -178,7 +177,7 @@ namespace CatTanks.UI
             {
                 // как background-size: cover — на любом соотношении сторон без полос и растяжения
                 var bg = UIFactory.Rect(rt, "Background", new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
-                UIFactory.Image(bg, menuBackground, menuBackgroundTint);
+                UIFactory.Image(bg, menuBackground, Color.white);
                 var fit = bg.gameObject.AddComponent<AspectRatioFitter>();
                 fit.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
                 fit.aspectRatio = menuBackground.rect.width / menuBackground.rect.height;
