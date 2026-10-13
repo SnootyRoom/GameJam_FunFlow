@@ -46,6 +46,9 @@ namespace CatTanks
             BulletsCollide = true;
         }
 
+        /// <summary>Все снаряды в полёте — для ИИ, который от них уворачивается. Только читать.</summary>
+        public static IReadOnlyList<Bullet> Active => Alive;
+
         /// <summary>Сколько снарядов этого владельца сейчас в полёте (для лимита как в Wii Tanks).</summary>
         public static int CountOwnedBy(GameObject owner)
         {

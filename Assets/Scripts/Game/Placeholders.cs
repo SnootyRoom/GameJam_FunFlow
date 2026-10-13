@@ -39,7 +39,10 @@ namespace CatTanks
         public static GameObject Enemy(EnemyDefinition def, Transform parent, Vector2 pos)
         {
             var go = def.sprite != null ? SpriteEnemy(def, parent, pos) : PrimitiveEnemy(def, parent, pos);
-            if (def.bossStages != null && def.bossStages.Length > 0) go.AddComponent<BossStages>(); // стадии зададутся в ApplyTo
+            // параметры этих компонентов проставит ApplyTo
+            if (def.bossStages != null && def.bossStages.Length > 0) go.AddComponent<BossStages>();
+            if (def.shoots && !def.moves && def.takesCover) go.AddComponent<ShooterTactics>(); // даёт стрелку тело, чтобы ходить
+            if (def.dodgeChance > 0f && (def.moves || def.takesCover)) go.AddComponent<EnemyEvasion>(); // уворачиваться может только тот, кто ходит
             return go;
         }
 

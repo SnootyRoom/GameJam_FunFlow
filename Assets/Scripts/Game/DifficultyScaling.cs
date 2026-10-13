@@ -1,6 +1,7 @@
 // Рост сложности от уровня к уровню (кроме числа врагов — его растит генератор по Difficulty).
 // С каждым уровнем враги чуть быстрее и злее: пули летят быстрее, стреляют чаще, меньше мажут,
-// а предупреждения (мигание перед выстрелом, замах клеща) становятся короче. После maxSteps уровней рост останавливается.
+// а предупреждения (мигание перед выстрелом, замах клеща) становятся короче, а уворачиваются враги чаще.
+// После maxSteps уровней рост останавливается.
 // Числа — в LevelConfig → «Рост сложности». Применяется к каждому врагу сразу после EnemyDefinition.ApplyTo.
 using System;
 using UnityEngine;
@@ -29,6 +30,12 @@ namespace CatTanks
         [Tooltip("Замах перед рывком на последнем шаге, секунды")]
         public float windupTimeMin = 0.3f;
 
+        [Header("Уклонение")]
+        [Tooltip("+к шансу увернуться за уровень (только у тех, кто вообще уворачивается)")]
+        public float dodgeChancePerLevel = 0.03f;
+        [Tooltip("Выше этого шанс уклонения от роста не поднимается")]
+        public float dodgeChanceMax = 0.7f;
+
         /// <summary>0 на первом уровне, 1 — на уровне 1 + maxSteps и дальше.</summary>
         public float Progress(int levelNumber) => maxSteps <= 0 ? 0f : Mathf.Clamp01((levelNumber - 1) / (float)maxSteps);
 
@@ -53,6 +60,10 @@ namespace CatTanks
                 crawler.speed *= 1f + crawlerSpeedPerLevel * steps;
                 crawler.windupTime = Mathf.Lerp(crawler.windupTime, Mathf.Min(windupTimeMin, crawler.windupTime), t);
             }
+
+            var evasion = enemy.GetComponentInChildren<EnemyEvasion>();
+            if (evasion != null && evasion.dodgeChance > 0f)
+                evasion.dodgeChance = Mathf.Max(evasion.dodgeChance, Mathf.Min(dodgeChanceMax, evasion.dodgeChance + dodgeChancePerLevel * steps));
         }
     }
 }

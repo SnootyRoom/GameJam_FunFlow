@@ -18,6 +18,9 @@ namespace CatTanks
         public int contactDamage = 1;
         [Tooltip("Пауза после рывка, прежде чем снова бежать")]
         public float contactCooldown = 1f;
+        [Tooltip("Зигзаг, когда кот его видит: 0 — бежит прямо, 1 — сильно виляет (в него сложнее попасть)")]
+        [Range(0f, 1f)] public float weave = 0f;
+        public float weaveFrequency = 7f;
 
         [Header("Атака рывком")]
         [Tooltip("С какого расстояния клещ начинает замах")]
@@ -51,15 +54,31 @@ namespace CatTanks
         Vector2 _lungeDir;
         bool _hitThisLunge;
         int _lungesDone;                     // сколько рывков уже сделано в текущей серии
+        EnemyEvasion _evasion;
+        Health _hp;
+        bool _inSight;                       // кот его видит — виляет зигзагом
+        float _weavePhase;
 
-        public void Init(LevelContext ctx) { _ctx = ctx; }
+        public void Init(LevelContext ctx)
+        {
+            _ctx = ctx;
+            _evasion = GetComponent<EnemyEvasion>();
+            _hp = GetComponent<Health>();
+            if (_hp != null) _hp.OnHpChanged += OnHp;
+        }
 
         void Awake()
         {
             _rb = Prims.AddTopDownBody(gameObject);
             _telegraph = GetComponent<ShotTelegraph>();
             if (_telegraph == null) _telegraph = gameObject.AddComponent<ShotTelegraph>();
+            _weavePhase = Random.Range(0f, 10f); // не виляют в ногу
         }
+
+        void OnDestroy() { if (_hp != null) _hp.OnHpChanged -= OnHp; }
+
+        // в него попали издалека — значит, кот рядом: бежит в бой, а не стоит мишенью
+        void OnHp(int hp, int max) { if (hp > 0 && hp < max) _aggro = true; }
 
         void Update()
         {
@@ -83,6 +102,7 @@ namespace CatTanks
                         _nextRepath = Time.time + repathInterval * Random.Range(0.8f, 1.2f); // разносим по кадрам
                         _path = _ctx.Pathfinder.FindPath(LevelGrid.WorldToCell(me), LevelGrid.WorldToCell(target));
                         _index = 1;
+                        _inSight = weave > 0f && CanSee(me, target, _ctx.Player.transform);
                     }
                     break;
 
@@ -141,6 +161,7 @@ namespace CatTanks
 
         void FixedUpdate()
         {
+            if (_evasion != null && _evasion.Dodging) return; // отскок двигает тело сам
             float dt = Time.fixedDeltaTime;
             switch (_state)
             {
@@ -159,10 +180,16 @@ namespace CatTanks
             if (_path == null || _index >= _path.Count) return;
             Vector2 wp = LevelGrid.CellToWorld(_path[_index]);
             Vector2 delta = wp - _rb.position;
-            if (delta.magnitude < 0.15f) { _index++; return; }
+            if (delta.magnitude < (_inSight ? 0.3f : 0.15f)) { _index++; return; }
 
-            Vector2 dir = delta.normalized;
-            _rb.MovePosition(_rb.position + dir * (speed * dt));
+            Vector2 dir = delta.normalized, move = dir;
+            if (_inSight)
+            {
+                // зигзаг: вперёд всегда больше, чем вбок, — до точки пути всё равно добежит
+                Vector2 side = new Vector2(-dir.y, dir.x);
+                move = (dir + side * (Mathf.Sin((Time.time + _weavePhase) * weaveFrequency) * weave)).normalized;
+            }
+            _rb.MovePosition(_rb.position + move * (speed * dt));
             Face(dir, 540f * dt);
         }
 

@@ -30,6 +30,7 @@ namespace CatTanks
             EnemyCrawler.AttackTelegraphed += OnCrawlerTelegraphed;
             BossStages.StageChanged += OnBossStage;
             BossStages.SpecialTelegraphed += OnBossSpecialTelegraphed;
+            EnemyEvasion.Dodged += OnEnemyDodged;
             PlayerTank.MinigunReloadStarted += OnReloadStarted;
             PlayerTank.MinigunReloaded += OnReloaded;
             BannerView.StarRevealed += OnStarRevealed;
@@ -61,6 +62,7 @@ namespace CatTanks
             EnemyCrawler.AttackTelegraphed -= OnCrawlerTelegraphed;
             BossStages.StageChanged -= OnBossStage;
             BossStages.SpecialTelegraphed -= OnBossSpecialTelegraphed;
+            EnemyEvasion.Dodged -= OnEnemyDodged;
             PlayerTank.MinigunReloadStarted -= OnReloadStarted;
             PlayerTank.MinigunReloaded -= OnReloaded;
             BannerView.StarRevealed -= OnStarRevealed;
@@ -135,6 +137,7 @@ namespace CatTanks
         // босс: рёв на новой стадии (каждая следующая — ниже и злее), низкий гул перед кольцом или спиралью
         void OnBossStage(Vector2 at, int stage) => Sfx.PlayAt(SfxId.BossRoar, at, 1f, 0f, Mathf.Max(0.7f, 1.05f - 0.1f * stage));
         void OnBossSpecialTelegraphed(Vector2 at) => Sfx.PlayAt(SfxId.EnemyCharge, at, 0.8f, 0.03f, 0.7f);
+        void OnEnemyDodged(Vector2 at) => Sfx.PlayAt(SfxId.WhizBy, at, 0.6f, 0.08f); // снаряд просвистел мимо — враг увернулся
         void OnReloadStarted() => Sfx.Play(SfxId.ReloadStart, 0.5f, 0.05f);
         void OnReloaded() => Sfx.Play(SfxId.ReloadEnd, 0.6f, 0.03f);
         void OnGameOver() => Sfx.Play(SfxId.DeathKnell, 0.8f, 0f); // погребальный колокол

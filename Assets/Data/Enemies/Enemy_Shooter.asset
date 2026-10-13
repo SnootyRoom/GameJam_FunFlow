@@ -20,6 +20,13 @@ MonoBehaviour:
   aggroRange: 9
   hearRange: 4
   contactDamage: 1
+  dodgeChance: 0.4
+  dodgeCooldown: 1
+  takesCover: 1
+  coverMoveSpeed: 2.6
+  hideTime: 1.8
+  repositionInterval: 4.5
+  keepDistance: 3.5
   fireInterval: 2.2
   bulletSpeed: 6
   maxBounces: 1

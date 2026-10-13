@@ -73,6 +73,8 @@ namespace CatTanks
         public int contactDamage = 1;
         [Tooltip("Пауза между укусами при контакте, сек")]
         public float contactCooldown = 1f;
+        [Tooltip("Зигзаг на бегу, когда кот его видит: 0 — прямо, 1 — сильно виляет")]
+        [Range(0f, 1f)] public float weave = 0f;
 
         [Header("Стрельба (EnemyShooter)")]
         public float fireInterval = 2.2f;
@@ -87,6 +89,22 @@ namespace CatTanks
         public Color bulletColor = new Color(1f, 0.35f, 0.9f);
         [Tooltip("Спрайт снаряда врага. Пусто = кружок цвета bulletColor")]
         public Sprite bulletSprite;
+
+        [Header("Выживание (EnemyEvasion, ShooterTactics)")]
+        [Tooltip("Шанс увернуться от снаряда кота, летящего прямо в цель. 0 — не уворачивается. Рикошет заметить сложнее")]
+        [Range(0f, 1f)] public float dodgeChance = 0f;
+        [Tooltip("Пауза между отскоками, сек")]
+        public float dodgeCooldown = 1f;
+        [Tooltip("Стрелок без ног воюет от укрытий: прячется после попадания, меняет позицию, держит дистанцию")]
+        public bool takesCover = false;
+        [Tooltip("Скорость перебежек между укрытиями")]
+        public float coverMoveSpeed = 2.6f;
+        [Tooltip("Сколько сидит в укрытии после попадания, сек")]
+        public float hideTime = 1.8f;
+        [Tooltip("Как часто меняет позицию, если в него не попадают, сек")]
+        public float repositionInterval = 4.5f;
+        [Tooltip("Ближе этого к коту не подпускает — отходит")]
+        public float keepDistance = 3.5f;
 
         /// <summary>Сдвиг от центра клетки спавна до центра врага.</summary>
         public Vector2 FootprintOffset => Vector2.one * ((footprint - 1) * 0.5f);
@@ -112,6 +130,7 @@ namespace CatTanks
                 crawler.repathInterval = repathInterval;
                 crawler.contactDamage = contactDamage;
                 crawler.contactCooldown = contactCooldown;
+                crawler.weave = weave;
             }
 
             var shooter = go.GetComponentInChildren<EnemyShooter>();
@@ -125,6 +144,22 @@ namespace CatTanks
                 shooter.turretTurnSpeed = turnSpeed;
                 shooter.bulletColor = bulletColor;
                 shooter.bulletSprite = bulletSprite;
+            }
+
+            var evasion = go.GetComponentInChildren<EnemyEvasion>();
+            if (evasion != null)
+            {
+                evasion.dodgeChance = dodgeChance;
+                evasion.dodgeCooldown = dodgeCooldown;
+            }
+
+            var tactics = go.GetComponentInChildren<ShooterTactics>();
+            if (tactics != null)
+            {
+                tactics.moveSpeed = coverMoveSpeed;
+                tactics.hideTime = hideTime;
+                tactics.repositionInterval = repositionInterval;
+                tactics.keepDistance = keepDistance;
             }
 
             var stages = go.GetComponentInChildren<BossStages>();

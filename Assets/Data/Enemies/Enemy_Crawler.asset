@@ -20,6 +20,9 @@ MonoBehaviour:
   aggroRange: 9
   hearRange: 4
   contactDamage: 1
+  weave: 0.6
+  dodgeChance: 0.3
+  dodgeCooldown: 1.1
   fireInterval: 2.2
   bulletSpeed: 6
   maxBounces: 1
