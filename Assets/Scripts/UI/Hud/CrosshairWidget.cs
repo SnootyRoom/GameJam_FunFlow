@@ -33,7 +33,8 @@ namespace CatTanks.UI
 
         void Update()
         {
-            bool show = _flow != null && _flow.State == GameState.Playing;
+            // в бою; когда время стоит (обучение поверх арены, экран победы) — вместо прицела обычный курсор
+            bool show = _flow != null && _flow.State == GameState.Playing && Time.timeScale > 0f;
             if (crosshair.gameObject.activeSelf != show) crosshair.gameObject.SetActive(show);
             if (!show) return;
 

@@ -22,6 +22,7 @@ namespace CatTanks.UI
 
         GameUIView _ui;
         System.Action _afterTutorial;
+        bool _tutorialFirstRun;               // обучение открыто по первому START
         bool _titleDone;
 
         // ------------------------------------------------------------------ Жизненный цикл
@@ -112,11 +113,25 @@ namespace CatTanks.UI
 
         // ------------------------------------------------------------------ Обучение
 
-        /// <summary>Play: при первом запуске сначала обучение, игра начнётся по GO / SKIP.</summary>
+        /// <summary>
+        /// START. При самом первом запуске уровень загружается и сразу замирает, а поверх арены открывается
+        /// обучение; по GO время идёт. Дальше START просто запускает игру (обучение — по кнопке TUTORIAL).
+        /// </summary>
         void Play()
         {
-            if (_ui.tutorial != null && !GameSettings.TutorialSeen) OpenTutorial(flow.StartNewGame);
-            else flow.StartNewGame();
+            flow.StartNewGame();
+            if (_ui.tutorial != null && !GameSettings.TutorialSeen) OpenTutorialInGame();
+        }
+
+        /// <summary>Обучение поверх только что загруженной арены: время стоит, Esc не работает, виден обычный курсор.</summary>
+        void OpenTutorialInGame()
+        {
+            _tutorialFirstRun = true;
+            _afterTutorial = null;
+            GameTime.Set(this, 0f);
+            flow.PauseBlocked = true;
+            Cursor.visible = true;
+            _ui.tutorial.Open();
         }
 
         /// <summary>Карточки поверх меню или паузы; их колонку на это время прячем. after — что сделать после закрытия.</summary>
@@ -124,6 +139,7 @@ namespace CatTanks.UI
         {
             if (_ui.tutorial == null) { after?.Invoke(); return; } // префаб собран старой версией сборщика
             _afterTutorial = after;
+            _tutorialFirstRun = false;
             _ui.menu.mainGroup.SetActive(false);
             _ui.pause.gameObject.SetActive(false);
             _ui.tutorial.Open();
@@ -131,10 +147,11 @@ namespace CatTanks.UI
 
         void HandleTutorialClosed()
         {
-            GameSettings.TutorialSeen = true;
+            if (_tutorialFirstRun) GameSettings.TutorialSeen = true; // отметку ставит только показ перед первой игрой
+            ReleaseTutorialHold();
             var after = _afterTutorial;
             _afterTutorial = null;
-            HandleState(flow.State); // вернуть меню или паузу как было
+            HandleState(flow.State); // вернуть меню, паузу или бой как было
             after?.Invoke();
         }
 
@@ -143,7 +160,17 @@ namespace CatTanks.UI
         {
             if (_ui.tutorial == null || !_ui.tutorial.IsOpen) return;
             _afterTutorial = null;
+            ReleaseTutorialHold();
             _ui.tutorial.gameObject.SetActive(false);
+        }
+
+        /// <summary>Снять «стоп» с арены, если обучение было открыто поверх неё.</summary>
+        void ReleaseTutorialHold()
+        {
+            if (!_tutorialFirstRun) return;
+            _tutorialFirstRun = false;
+            GameTime.Clear(this);
+            flow.PauseBlocked = false;
         }
 
         // Настройки одни на главное меню и паузу — подписи обновляем в обоих местах.

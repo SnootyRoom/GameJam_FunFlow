@@ -40,6 +40,8 @@ namespace CatTanks
         public int Difficulty { get; private set; }
         /// <summary>Звёзд собрано за текущий забег (с нажатия Play).</summary>
         public int TotalStars { get; private set; }
+        /// <summary>Esc не ставит паузу (например, пока поверх арены открыто обучение).</summary>
+        public bool PauseBlocked { get; set; }
 
         // ----- события (подписывается UI, звук, эффекты) -----
         public event Action<GameState> OnStateChanged;
@@ -94,7 +96,7 @@ namespace CatTanks
 
         void Update()
         {
-            if (GameInput.PausePressed())
+            if (GameInput.PausePressed() && !PauseBlocked)
             {
                 if (State == GameState.Playing) Pause(true);
                 else if (State == GameState.Paused) Pause(false);

@@ -28,6 +28,9 @@ namespace CatTanks
             set => PlayerPrefs.SetInt(TutorialSeenKey, value ? 1 : 0);
         }
 
+        /// <summary>Забыть, что обучение показывали, — следующий START снова его откроет (для проверки первого запуска).</summary>
+        public static void ResetTutorial() => PlayerPrefs.DeleteKey(TutorialSeenKey);
+
         /// <summary>Применить сохранённое при запуске.</summary>
         public static void Apply() => Sfx.MasterVolume = SoundOn ? SoundVolume : 0f;
     }
