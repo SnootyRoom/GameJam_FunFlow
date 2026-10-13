@@ -1,49 +1,102 @@
-// Команда редактора CatTanks → UI → Собрать префабы UI.
-// 1) Сохраняет сгенерированные кодом пиксельные заготовки (подложка, стрелка, круг…) в PNG — префабы
-//    не могут ссылаться на картинки, созданные в памяти.
-// 2) Собирает UI по теме (GameUIBuilder) и сохраняет: Hud, Banner, Pause, GameOver, MainMenu, Tutorial — отдельные префабы,
-//    GameCanvas — холст, в который они вложены.
-// 3) Подставляет GameCanvas в GameUI открытой сцены.
-// Пересборка ПЕРЕЗАПИСЫВАЕТ ручные правки в этих префабах — команда спросит подтверждение.
+// Команды редактора CatTanks → UI.
+//   «Собрать префабы UI»: собирает UI по теме (GameUIBuilder) в префабы Assets/Prefabs/UI —
+//     экраны Hud, Banner, Pause, GameOver, MainMenu, Tutorial отдельными префабами и холст GameCanvas, в который они вложены;
+//     заодно сохраняет пиксельные заготовки в PNG и подставляет GameCanvas в GameUI открытой сцены.
+//   «Пересобрать один экран»: только выбранный экран, остальные не трогаются.
+//
+// РУЧНЫЕ ПРАВКИ НЕ ТЕРЯЮТСЯ. После сборки запоминается «отпечаток» каждого префаба (Assets/Prefabs/UI/.ui-bake.json —
+// файл с точкой Unity не импортирует, но он попадает в git и общий для всей команды). При следующей сборке:
+//   • экран не меняли руками — пересобирается молча;
+//   • экран правили руками — сборщик спросит: перезаписать или оставить ручную версию
+//     (оставленная встраивается в новый холст как есть).
+using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
 using CatTanks.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace CatTanks.EditorTools
 {
     public static class UiPrefabBaker
     {
+        const string CanvasName = "GameCanvas";
+        static string ManifestPath => UiPaths.Folder + "/.ui-bake.json";
+
+        /// <summary>Экраны UI: имя префаба, как достать его из холста и как подменить на готовый префаб.</summary>
+        struct Screen
+        {
+            public string name;
+            public Func<GameUIView, Component> get;
+            public Action<GameUIView, GameObject> set;
+            public string Path => $"{UiPaths.Folder}/{name}.prefab";
+        }
+
+        static readonly Screen[] Screens =
+        {
+            new Screen { name = "Hud", get = v => v.hud, set = (v, go) => v.hud = go.GetComponent<HudView>() },
+            new Screen { name = "Banner", get = v => v.banner, set = (v, go) => v.banner = go.GetComponent<BannerView>() },
+            new Screen { name = "Pause", get = v => v.pause, set = (v, go) => v.pause = go.GetComponent<PauseView>() },
+            new Screen { name = "GameOver", get = v => v.gameOver, set = (v, go) => v.gameOver = go.GetComponent<GameOverView>() },
+            new Screen { name = "MainMenu", get = v => v.menu, set = (v, go) => v.menu = go.GetComponent<MainMenuView>() },
+            new Screen { name = "Tutorial", get = v => v.tutorial, set = (v, go) => v.tutorial = go.GetComponent<TutorialView>() },
+        };
+
+        // ------------------------------------------------------------------ Команды
+
         [MenuItem("CatTanks/UI/Собрать префабы UI")]
         static void Bake()
         {
-            if (File.Exists(UiPaths.CanvasPrefab) &&
-                !EditorUtility.DisplayDialog("Собрать префабы UI",
-                    "Префабы UI уже есть. Пересборка из темы перезапишет все ручные правки в них.\n\nПродолжить?",
-                    "Пересобрать", "Отмена"))
-                return;
+            var manifest = Manifest.Load();
+            var edited = new List<string>();
+            foreach (var s in Screens) if (IsEdited(s.Path, manifest)) edited.Add(s.name);
+            bool canvasEdited = IsEdited(UiPaths.CanvasPrefab, manifest);
+            if (canvasEdited) edited.Add(CanvasName);
 
-            var theme = FindOrCreateTheme();
-            SaveGeneratedSprites(theme);
+            bool overwriteEdited = false;
+            if (edited.Count > 0)
+            {
+                int choice = EditorUtility.DisplayDialogComplex("Собрать префабы UI",
+                    "Эти префабы правили руками после прошлой сборки:\n\n  " + string.Join(", ", edited) +
+                    "\n\nНетронутые экраны пересоберутся в любом случае. Что сделать с изменёнными?",
+                    "Оставить мои правки", "Отмена", "Перезаписать из темы");
+                if (choice == 1) return;
+                overwriteEdited = choice == 2;
+            }
 
+            var theme = PrepareTheme();
             Directory.CreateDirectory(UiPaths.Folder);
             var temp = new GameObject("UiBakeTemp");
             try
             {
                 var view = GameUIBuilder.Build(temp.transform, theme);
+                var kept = new List<string>();
+                foreach (var s in Screens)
+                {
+                    if (!overwriteEdited && edited.Contains(s.name)) { KeepExisting(view, s); kept.Add(s.name); }
+                    else SaveScreen(view, s, manifest);
+                }
 
-                // экраны — отдельными префабами, чтобы разные люди могли править их без конфликтов
-                SaveScreen(view.hud.gameObject, "Hud");
-                SaveScreen(view.banner.gameObject, "Banner");
-                SaveScreen(view.pause.gameObject, "Pause");
-                SaveScreen(view.menu.gameObject, "MainMenu");
-                SaveScreen(view.tutorial.gameObject, "Tutorial");
-                SaveScreen(view.gameOver.gameObject, "GameOver");
+                GameUIView canvas;
+                if (!overwriteEdited && canvasEdited)
+                {
+                    // холст правили руками — не трогаем; экраны в нём — ссылки на префабы, они уже обновлены
+                    canvas = AssetDatabase.LoadAssetAtPath<GameObject>(UiPaths.CanvasPrefab).GetComponent<GameUIView>();
+                    kept.Add(CanvasName);
+                }
+                else
+                {
+                    canvas = PrefabUtility.SaveAsPrefabAsset(view.gameObject, UiPaths.CanvasPrefab).GetComponent<GameUIView>();
+                    manifest.Set(UiPaths.CanvasPrefab, Hash(UiPaths.CanvasPrefab));
+                }
+                manifest.Save();
 
-                var canvas = PrefabUtility.SaveAsPrefabAsset(view.gameObject, UiPaths.CanvasPrefab);
-                AssignToScene(canvas.GetComponent<GameUIView>(), theme);
-                Debug.Log($"[UI] Префабы собраны в {UiPaths.Folder}. Правь вёрстку прямо в них.", canvas);
+                AssignToScene(canvas, theme);
+                Debug.Log($"[UI] Префабы собраны в {UiPaths.Folder}." +
+                          (kept.Count > 0 ? " Оставлены ручные версии: " + string.Join(", ", kept) + "." : ""), canvas);
                 EditorGUIUtility.PingObject(canvas);
             }
             finally
@@ -52,10 +105,112 @@ namespace CatTanks.EditorTools
             }
         }
 
-        static void SaveScreen(GameObject screen, string name)
+        [MenuItem("CatTanks/UI/Пересобрать один экран/HUD")] static void BakeHud() => BakeOne("Hud");
+        [MenuItem("CatTanks/UI/Пересобрать один экран/Баннер")] static void BakeBanner() => BakeOne("Banner");
+        [MenuItem("CatTanks/UI/Пересобрать один экран/Пауза")] static void BakePause() => BakeOne("Pause");
+        [MenuItem("CatTanks/UI/Пересобрать один экран/Game Over")] static void BakeGameOver() => BakeOne("GameOver");
+        [MenuItem("CatTanks/UI/Пересобрать один экран/Главное меню")] static void BakeMenu() => BakeOne("MainMenu");
+        [MenuItem("CatTanks/UI/Пересобрать один экран/Обучение")] static void BakeTutorial() => BakeOne("Tutorial");
+
+        /// <summary>Пересобрать из темы только один экран. Холст ссылается на префаб экрана — его трогать не нужно.</summary>
+        static void BakeOne(string name)
+        {
+            var screen = Array.Find(Screens, s => s.name == name);
+            if (!File.Exists(UiPaths.CanvasPrefab) || !File.Exists(screen.Path))
+            {
+                Debug.Log($"[UI] Префаба {name} ещё нет — собираю весь UI.");
+                Bake();
+                return;
+            }
+            var manifest = Manifest.Load();
+            if (IsEdited(screen.Path, manifest) &&
+                !EditorUtility.DisplayDialog("Пересобрать " + name,
+                    $"{name} правили руками после прошлой сборки. Пересборка из темы перезапишет эти правки.\n\nПродолжить?",
+                    "Перезаписать", "Отмена"))
+                return;
+
+            var theme = PrepareTheme();
+            var temp = new GameObject("UiBakeTemp");
+            try
+            {
+                var view = GameUIBuilder.Build(temp.transform, theme);
+                SaveScreen(view, screen, manifest);
+                manifest.Save();
+                Debug.Log($"[UI] Экран {name} пересобран, остальные не тронуты.");
+                EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<GameObject>(screen.Path));
+            }
+            finally
+            {
+                Object.DestroyImmediate(temp);
+            }
+        }
+
+        // ------------------------------------------------------------------ Экраны
+
+        static UiTheme PrepareTheme()
+        {
+            var theme = FindOrCreateTheme();
+            SaveGeneratedSprites(theme);
+            return theme;
+        }
+
+        static void SaveScreen(GameUIView view, Screen s, Manifest manifest)
         {
             // после сохранения объект в иерархии становится экземпляром префаба → холст сохранится со вложенными префабами
-            PrefabUtility.SaveAsPrefabAssetAndConnect(screen, $"{UiPaths.Folder}/{name}.prefab", InteractionMode.AutomatedAction);
+            PrefabUtility.SaveAsPrefabAssetAndConnect(s.get(view).gameObject, s.Path, InteractionMode.AutomatedAction);
+            manifest.Set(s.Path, Hash(s.Path));
+        }
+
+        /// <summary>Собранный из темы экран убираем, на его место — уже существующий (ручной) префаб.</summary>
+        static void KeepExisting(GameUIView view, Screen s)
+        {
+            var built = s.get(view).transform;
+            int index = built.GetSiblingIndex();
+            var parent = built.parent;
+            Object.DestroyImmediate(built.gameObject);
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(s.Path), parent);
+            instance.transform.SetSiblingIndex(index);
+            s.set(view, instance);
+        }
+
+        // ------------------------------------------------------------------ Отпечатки префабов
+
+        /// <summary>Префаб есть, а его отпечаток не совпадает с записанным при сборке (или записи нет) — значит, правили руками.</summary>
+        static bool IsEdited(string path, Manifest manifest)
+        {
+            if (!File.Exists(path)) return false;
+            string recorded = manifest.Get(path);
+            return recorded == null || recorded != Hash(path);
+        }
+
+        static string Hash(string path)
+        {
+            using (var md5 = MD5.Create())
+                return BitConverter.ToString(md5.ComputeHash(File.ReadAllBytes(path))).Replace("-", "");
+        }
+
+        [Serializable]
+        class Manifest
+        {
+            [Serializable] public class Entry { public string path; public string hash; }
+            public List<Entry> entries = new List<Entry>();
+
+            public static Manifest Load()
+            {
+                if (!File.Exists(ManifestPath)) return new Manifest();
+                return JsonUtility.FromJson<Manifest>(File.ReadAllText(ManifestPath)) ?? new Manifest();
+            }
+
+            public void Save() => File.WriteAllText(ManifestPath, JsonUtility.ToJson(this, true));
+
+            public string Get(string path) => entries.Find(e => e.path == path)?.hash;
+
+            public void Set(string path, string hash)
+            {
+                var e = entries.Find(x => x.path == path);
+                if (e == null) entries.Add(e = new Entry { path = path });
+                e.hash = hash;
+            }
         }
 
         static UiTheme FindOrCreateTheme()

@@ -67,7 +67,7 @@ namespace CatTanks
             if (IsDead || (!byUltimate && Time.time < _invulUntil)) return;
             LastAttacker = attacker;
             LastHitByUltimate = byUltimate;
-            Hp -= amount;
+            Hp = Mathf.Max(0, Hp - amount); // не уходим в минус: удар ореха на 99 — это «0», а не «−89» для полосок HP
             _invulUntil = Time.time + invulnerableAfterHit;
             _flashUntil = Time.time + 0.08f;
             SetFlash(true);

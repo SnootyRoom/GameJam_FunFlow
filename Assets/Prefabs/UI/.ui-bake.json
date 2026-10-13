@@ -1,0 +1,32 @@
+{
+    "entries": [
+        {
+            "path": "Assets/Prefabs/UI/Hud.prefab",
+            "hash": "9AF099AE7B510B715E6550E309F08C0C"
+        },
+        {
+            "path": "Assets/Prefabs/UI/Banner.prefab",
+            "hash": "9FCB6283FFE737E8903A0BB76C23A8B5"
+        },
+        {
+            "path": "Assets/Prefabs/UI/Pause.prefab",
+            "hash": "A453A4FDA6DB64D7F6B8AC4230806358"
+        },
+        {
+            "path": "Assets/Prefabs/UI/GameOver.prefab",
+            "hash": "381301A72A9C452D82C86F3FEC0DBD98"
+        },
+        {
+            "path": "Assets/Prefabs/UI/MainMenu.prefab",
+            "hash": "664A62329FA191BF469E65FE0D97613D"
+        },
+        {
+            "path": "Assets/Prefabs/UI/Tutorial.prefab",
+            "hash": "C559FE381CD82CF8A3A551C33E0B5FBF"
+        },
+        {
+            "path": "Assets/Prefabs/UI/GameCanvas.prefab",
+            "hash": "911875AAB2794B3352C8107237E4BA94"
+        }
+    ]
+}

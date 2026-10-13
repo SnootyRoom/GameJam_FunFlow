@@ -52,6 +52,14 @@ namespace CatTanks
         /// <summary>Забыть, что обучение показывали, — следующий START снова его откроет (для проверки первого запуска).</summary>
         public static void ResetTutorial() => PlayerPrefs.DeleteKey(TutorialSeenKey);
 
+        /// <summary>Стереть рекорд (лучший уровень и звёзды).</summary>
+        public static void ResetRecord()
+        {
+            PlayerPrefs.DeleteKey(BestLevelKey);
+            PlayerPrefs.DeleteKey(BestStarsKey);
+            LastRunWasRecord = false;
+        }
+
         /// <summary>Применить сохранённое при запуске.</summary>
         public static void Apply() => Sfx.MasterVolume = SoundOn ? SoundVolume : 0f;
     }

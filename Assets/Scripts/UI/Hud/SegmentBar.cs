@@ -31,6 +31,8 @@ namespace CatTanks.UI
         /// <summary>Показать hp из max. instant — без анимаций (новый уровень).</summary>
         public void Set(int hp, int max, bool instant = false)
         {
+            max = Mathf.Max(0, max);
+            hp = Mathf.Clamp(hp, 0, max); // на всякий случай: номер сегмента не может быть отрицательным или больше max
             if (max != _max) Rebuild(max);
             if (!instant && _hp >= 0)
             {
