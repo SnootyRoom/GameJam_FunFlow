@@ -142,7 +142,6 @@ ArtSource/          исходники Aseprite и Lua-скрипты рисов
 | Шрифт Press Start 2P | CodeMan38 | SIL Open Font License 1.1 | [Google Fonts](https://fonts.google.com/specimen/Press+Start+2P) |
 | Звуки и музыка | синтез кодом (команда) | — | — |
 | Персонажи, враги, UI, частицы | команда | — | — |
-| Фон главного меню | | | |
 
 ## Инструменты
 
