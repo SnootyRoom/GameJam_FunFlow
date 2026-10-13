@@ -201,6 +201,7 @@ namespace CatTanks
                 Data = data,
                 Pathfinder = new GridPathfinder(data),
                 Builder = _builder,
+                Spawner = _spawner,
                 Root = root,
                 LevelNumber = LevelNumber,
                 Difficulty = Difficulty,

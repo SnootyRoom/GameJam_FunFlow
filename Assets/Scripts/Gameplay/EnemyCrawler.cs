@@ -26,6 +26,10 @@ namespace CatTanks
         public float windupTime = 0.5f;
         public float lungeSpeed = 7f;
         public float lungeTime = 0.25f;
+        [Tooltip("Сколько рывков подряд (стадии босса): после промаха — короткий замах и новый рывок туда, где кот сейчас")]
+        public int lungeChain = 1;
+        [Tooltip("Замах перед повторным рывком серии — доля от windupTime")]
+        public float chainWindupFactor = 0.6f;
 
         /// <summary>Клещ начал замах (точка) — для звука.</summary>
         public static event System.Action<Vector2> AttackTelegraphed;
@@ -46,6 +50,7 @@ namespace CatTanks
         float _stateEnd, _stateStart;
         Vector2 _lungeDir;
         bool _hitThisLunge;
+        int _lungesDone;                     // сколько рывков уже сделано в текущей серии
 
         public void Init(LevelContext ctx) { _ctx = ctx; }
 
@@ -72,7 +77,7 @@ namespace CatTanks
             switch (_state)
             {
                 case State.Chase:
-                    if (dist <= attackRange && CanSee(me, target, _ctx.Player.transform)) { BeginWindup(target - me); return; }
+                    if (dist <= attackRange && CanSee(me, target, _ctx.Player.transform)) { _lungesDone = 0; BeginWindup(target - me, windupTime); return; }
                     if (Time.time >= _nextRepath)
                     {
                         _nextRepath = Time.time + repathInterval * Random.Range(0.8f, 1.2f); // разносим по кадрам
@@ -82,7 +87,7 @@ namespace CatTanks
                     break;
 
                 case State.Windup:
-                    _telegraph.Show(me, _lungeDir, 0f, 0, Mathf.Clamp01((Time.time - _stateStart) / windupTime), drawLine: false);
+                    _telegraph.Show(me, _lungeDir, 0f, 0, Mathf.Clamp01((Time.time - _stateStart) / Mathf.Max(0.01f, _stateEnd - _stateStart)), drawLine: false);
                     if (Time.time >= _stateEnd)
                     {
                         EndWindup();
@@ -92,7 +97,10 @@ namespace CatTanks
                     break;
 
                 case State.Lunge:
-                    if (Time.time >= _stateEnd) Enter(State.Recover, contactCooldown);
+                    if (Time.time < _stateEnd) break;
+                    // серия рывков: промахнулся — тут же замахивается ещё раз (уже короче), пока серия не кончится
+                    if (++_lungesDone < lungeChain) BeginWindup(target - me, Mathf.Max(0.2f, windupTime * chainWindupFactor)); // не короче 0.2 с — успеть увидеть
+                    else Enter(State.Recover, contactCooldown);
                     break;
 
                 case State.Recover:
@@ -101,12 +109,25 @@ namespace CatTanks
             }
         }
 
-        void BeginWindup(Vector2 toPlayer)
+        void BeginWindup(Vector2 toPlayer, float duration)
         {
             _lungeDir = toPlayer.sqrMagnitude > 0.0001f ? toPlayer.normalized : (Vector2)transform.right;
             _path = null;
-            Enter(State.Windup, windupTime);
+            Enter(State.Windup, duration);
             AttackTelegraphed?.Invoke(transform.position);
+        }
+
+        /// <summary>Замахивается или делает рывок? Пока да, другие атаки ждут.</summary>
+        public bool Busy => _state == State.Windup || _state == State.Lunge;
+
+        /// <summary>Сбросить атаку и встать (например, босс перешёл в новую стадию). Дальше — снова погоня.</summary>
+        public void Interrupt()
+        {
+            EndWindup();
+            Enter(State.Chase, 0f);
+            _path = null;
+            _nextRepath = 0f;
+            if (_rb != null) _rb.linearVelocity = Vector2.zero;
         }
 
         void EndWindup() { if (_telegraph != null) _telegraph.Hide(); }
