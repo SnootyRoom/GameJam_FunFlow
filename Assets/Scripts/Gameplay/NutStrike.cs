@@ -84,8 +84,15 @@ namespace CatTanks
             _ringSr.color = new Color(Danger.r, Danger.g, Danger.b, Mathf.Lerp(0.45f, 1f, pulse));
             _fillSr.color = new Color(Danger.r, Danger.g, Danger.b, Mathf.Lerp(0.15f, 0.35f, t) + 0.1f * pulse);
 
-            if (_t >= 1f) Impact();
+            if (_t >= 1f && !_impacted)
+            {
+                _impacted = true; // удар — ровно один раз, даже если внутри что-то пошло не так
+                try { Impact(); }
+                finally { Destroy(gameObject); }
+            }
         }
+
+        bool _impacted;
 
         void Impact()
         {
@@ -96,11 +103,15 @@ namespace CatTanks
             Hit.Clear();
             int n = Physics2D.OverlapCircle(c, R, ContactFilter2D.noFilter, Overlap);
             int kills = 0;
+            // сначала собираем цели, потом бьём: смерть врага запускает звук, эффекты, HUD — пусть они не мешают перебору
             for (int i = 0; i < n; i++)
             {
-                var hp = Overlap[i] != null ? Overlap[i].GetComponentInParent<Health>() : null;
-                if (hp == null || hp.IsDead || Hit.Contains(hp)) continue;
-                Hit.Add(hp);
+                var found = Overlap[i] != null ? Overlap[i].GetComponentInParent<Health>() : null;
+                if (found != null && !found.IsDead && !Hit.Contains(found)) Hit.Add(found);
+            }
+            foreach (var hp in Hit)
+            {
+                if (hp == null || hp.IsDead) continue;
                 Vector2 p = hp.transform.position;
                 float dist = Vector2.Distance(p, c);
                 if (hp.IsPlayer)
@@ -124,7 +135,6 @@ namespace CatTanks
 
             CameraFollow.Shake(0.35f, 0.45f);
             Impacted?.Invoke(c, R, kills);
-            Destroy(gameObject);
         }
     }
 }

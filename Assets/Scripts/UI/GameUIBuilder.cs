@@ -50,7 +50,10 @@ namespace CatTanks.UI
             var rt = UIFactory.Stretch(root, "Hud");
             var v = rt.gameObject.AddComponent<HudView>();
 
-            BuildHearts(rt);
+            // здоровье кота: полоска из сегментов, если художник её нарисовал, иначе — сердечки
+            if (t.hpFrame != null && t.hpSegmentFull != null) BuildPlayerHp(rt);
+            else BuildHearts(rt);
+            if (t.bossHpFrame != null && t.bossHpSegmentFull != null) BuildBossBar(rt);
             BuildLevelInfo(rt);
             BuildLiveStars(rt);
             BuildExitArrow(rt);
@@ -85,6 +88,55 @@ namespace CatTanks.UI
             w.heartColor = t.heartColor;
         }
 
+        // Полоски из сегментов: картинки нарисованы блоками по 4 px, ×1.5 — блоки по 6 px. Рамка — 16 px с каждой стороны.
+        const float HpScale = 1.5f, HpFrameInset = 16f * HpScale, HpGap = 4f * HpScale;
+
+        /// <summary>Рамка с сегментами (общая для кота и босса): frame — картинка рамки, внутри SegmentBar.</summary>
+        SegmentBar SegmentFrame(RectTransform parent, Vector2 anchor, Vector2 pos, Sprite frame, Sprite full, Sprite empty, Sprite lost)
+        {
+            var frameRt = UIFactory.Rect(parent, "Frame", anchor, pos, frame.rect.size * HpScale);
+            UIFactory.Image(frameRt, frame, Color.white);
+            var inner = UIFactory.Stretch(frameRt, "Segments");
+            inner.offsetMin = new Vector2(HpFrameInset, HpFrameInset);
+            inner.offsetMax = -inner.offsetMin;
+            var bar = frameRt.gameObject.AddComponent<SegmentBar>();
+            bar.inner = inner;
+            bar.shakeTarget = frameRt;
+            bar.full = full;
+            bar.empty = empty;
+            bar.lost = lost;
+            bar.gap = HpGap;
+            return bar;
+        }
+
+        /// <summary>Здоровье кота слева сверху: иконка и полоска из сегментов.</summary>
+        void BuildPlayerHp(RectTransform hud)
+        {
+            var w = Widget<PlayerHpWidget>(hud, "PlayerHpWidget");
+            w.root = UIFactory.Rect(w.transform, "PlayerHp", new Vector2(0, 1), new Vector2(28, -20), new Vector2(700, 96));
+            if (t.hpIcon != null)
+            {
+                var icon = UIFactory.Rect(w.root, "Icon", new Vector2(0, 0.5f), Vector2.zero, t.hpIcon.rect.size * HpScale);
+                w.icon = UIFactory.Image(icon, t.hpIcon, Color.white);
+            }
+            float x = t.hpIcon != null ? t.hpIcon.rect.width * HpScale + 8f : 0f;
+            w.bar = SegmentFrame(w.root, new Vector2(0, 0.5f), new Vector2(x, 0), t.hpFrame, t.hpSegmentFull, t.hpSegmentEmpty, t.hpSegmentLost);
+            w.root.gameObject.SetActive(false);
+        }
+
+        /// <summary>Здоровье босса внизу по центру: табличка с именем над левым краем и полоска из сегментов.</summary>
+        void BuildBossBar(RectTransform hud)
+        {
+            var w = Widget<BossBarWidget>(hud, "BossBarWidget");
+            var size = t.bossHpFrame.rect.size * HpScale;
+            w.root = UIFactory.Rect(w.transform, "BossHp", new Vector2(0.5f, 0), new Vector2(0, 28), new Vector2(size.x, size.y + 90));
+            w.bar = SegmentFrame(w.root, new Vector2(0.5f, 0), Vector2.zero, t.bossHpFrame, t.bossHpSegmentFull, t.bossHpSegmentEmpty, null);
+            var plate = UIFactory.Rect(w.root, "Name", new Vector2(0, 1), new Vector2(12, 0), new Vector2(204, 96));
+            w.nameplate = UIFactory.Image(plate, null, Color.white);
+            w.nameplate.gameObject.SetActive(false);
+            w.root.gameObject.SetActive(false);
+        }
+
         void BuildLevelInfo(RectTransform hud)
         {
             var w = Widget<LevelInfoWidget>(hud, "LevelInfoWidget");
@@ -112,6 +164,13 @@ namespace CatTanks.UI
             w.starOn = t.starOn;
             w.starPossible = t.starPossible;
             w.starOff = t.starOff;
+            if (t.starInactive != null) // у художника две картинки — цвет менять не нужно, только затемнить потерянную
+            {
+                w.activeSprite = t.starIcon;
+                w.inactiveSprite = t.starInactive;
+                w.starOn = w.starPossible = Color.white;
+                w.starOff = new Color(0.55f, 0.5f, 0.6f, 0.85f);
+            }
             w.total = UIFactory.Text(UIFactory.Rect(w.transform, "Total", new Vector2(1, 1), new Vector2(-32, -80), new Vector2(400, 48)),
                                      _font, "Stars: 0", 24, TextAnchor.MiddleRight, t.starOn);
             UIFactory.HardShadow(w.total, 3, new Color(0, 0, 0, 0.85f));
@@ -264,6 +323,12 @@ namespace CatTanks.UI
             v.starLabels = new Text[count];
             v.starOn = t.starOn;
             v.starOff = t.starOff;
+            if (t.starInactive != null)
+            {
+                v.activeSprite = t.starIcon;
+                v.inactiveSprite = t.starInactive;
+                v.starOn = v.starOff = Color.white;
+            }
             for (int i = 0; i < count; i++)
             {
                 float x = (i - (count - 1) / 2f) * step;
@@ -331,9 +396,13 @@ namespace CatTanks.UI
             title.rectTransform.pivot = new Vector2(0.5f, 0.5f);
             Object.DestroyImmediate(title.GetComponent<Shadow>());
 
-            // разделитель под заголовком, как на референсе
-            var line = UIFactory.Rect(parent, "Divider", new Vector2(0.5f, 1), new Vector2(0, -145),
-                                      new Vector2(width, PauseBlock / 2f));
+            CardDivider(parent, -145, width); // разделитель под заголовком, как на референсе
+        }
+
+        /// <summary>Горизонтальная полоса-разделитель на бумажной карточке (y — от верха карточки).</summary>
+        void CardDivider(RectTransform parent, float y, float width)
+        {
+            var line = UIFactory.Rect(parent, "Divider", new Vector2(0.5f, 1), new Vector2(0, y), new Vector2(width, PauseBlock / 2f));
             line.pivot = new Vector2(0.5f, 0.5f);
             UIFactory.Image(line, null, t.pausePaperShade);
         }
@@ -450,19 +519,33 @@ namespace CatTanks.UI
             InkText(press, "ToUse", "TO USE", Vector2.zero, Vector2.zero);
             var next2 = SmallButton(ult, t.nextButton, "NEXT", new Vector2(0, -700));
 
-            // 3. YOUR GOAL: стрелка → рыба (выход уровня)
-            var goal = Card(rt, "YourGoal", "YOUR GOAL", new Vector2(1000, 830));
-            InkText(goal, "Reach", "REACH THE FISH", new Vector2(0, -245), new Vector2(900, 80));
-            var icons = InlineRow(goal, "Icons", -395, 160);
+            // 3. YOUR GOAL: стрелка → рыба (выход уровня), разделитель, звёзды (2 из 3 — пример, что их надо собрать)
+            var goal = Card(rt, "YourGoal", "YOUR GOAL", new Vector2(1000, 920));
+            InkText(goal, "Reach", "REACH THE FISH", new Vector2(0, -225), new Vector2(900, 80));
+            var icons = InlineRow(goal, "Icons", -318, 104);
             var arrow = UIFactory.Rect(icons, "Arrow", new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
-            Fixed(arrow, 60, 90);
+            Fixed(arrow, 40, 60);
             UIFactory.Image(arrow, ExitArrowSprite(), ExitArrowColor()).preserveAspect = true;
-            InkText(icons, "Dots", "...", Vector2.zero, Vector2.zero).fontSize = 32;
+            InkText(icons, "Dots", "...", Vector2.zero, Vector2.zero).fontSize = 24;
             var fish = UIFactory.Rect(icons, "Fish", new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
-            Fixed(fish, 160, 160);
+            Fixed(fish, 104, 104);
             UIFactory.Image(fish, Or(t.tutorialFish, Prims.Circle), Color.white).preserveAspect = true;
-            InkText(goal, "Follow", "FOLLOW THE ARROW", new Vector2(0, -545), new Vector2(900, 80));
-            v.go = SmallButton(goal, t.goButton, "GO", new Vector2(0, -700));
+            InkText(goal, "Follow", "FOLLOW THE ARROW", new Vector2(0, -418), new Vector2(900, 80));
+
+            CardDivider(goal, -485, 1000 - 2 * PausePadding);
+            InkText(goal, "Stars", "COLLECT ALL STARS", new Vector2(0, -560), new Vector2(900, 80));
+            var starsRow = InlineRow(goal, "StarsRow", -650, 52);
+            starsRow.GetComponent<HorizontalLayoutGroup>().spacing = 12;
+            for (int i = 0; i < 3; i++)
+            {
+                bool earned = i < 2;
+                var star = UIFactory.Rect(starsRow, "Star" + i, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+                Fixed(star, 52, 52); // звезда 104 px → ровно ×0.5, 13 px из кода → ×4
+                var sprite = earned || t.starInactive == null ? Or(t.starIcon, UIFactory.PixelStarSprite()) : t.starInactive;
+                var color = t.starInactive != null ? Color.white : earned ? t.starOn : t.starOff;
+                UIFactory.Image(star, sprite, color).preserveAspect = true;
+            }
+            v.go = SmallButton(goal, t.goButton, "GO", new Vector2(0, -790));
 
             v.cards = new[] { howTo.gameObject, ult.gameObject, goal.gameObject };
             v.next = new[] { next1, next2 };

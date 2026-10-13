@@ -491,7 +491,7 @@ MonoBehaviour:
   levelCompleteDelay: 1.5
   restartDelay: 1.5
   starsShowTime: 1.2
-  debugKeys: 1
+  debugKeys: 0
 --- !u!1 &933727910
 GameObject:
   m_ObjectHideFlags: 0

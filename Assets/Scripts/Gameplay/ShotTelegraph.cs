@@ -51,7 +51,11 @@ namespace CatTanks
             _showing = true;
             if (_renderers == null)
             {
-                _renderers = GetComponentsInChildren<SpriteRenderer>();
+                // только спрайты самого врага: полоска HP над ним не мигает
+                var bar = GetComponent<EnemyHpBar>();
+                var root = bar != null ? bar.BarRoot : null;
+                _renderers = System.Array.FindAll(GetComponentsInChildren<SpriteRenderer>(),
+                                                  r => root == null || !r.transform.IsChildOf(root));
                 _colors = new Color[_renderers.Length];
             }
             for (int i = 0; i < _renderers.Length; i++) if (_renderers[i] != null) _colors[i] = _renderers[i].color;

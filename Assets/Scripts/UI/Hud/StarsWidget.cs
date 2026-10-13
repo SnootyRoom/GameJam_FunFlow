@@ -13,6 +13,8 @@ namespace CatTanks.UI
         public Color starOn = new Color32(255, 196, 56, 255);
         public Color starPossible = new Color(1f, 1f, 1f, 0.6f);
         public Color starOff = new Color(0.35f, 0.3f, 0.4f, 0.75f);
+        [Tooltip("Картинки звезды: заработанная / нет (star_active / star_inactive). Пусто = одна картинка, разница — цветом")]
+        public Sprite activeSprite, inactiveSprite;
 
         GameFlow _flow;
         LevelStars _level;
@@ -49,6 +51,8 @@ namespace CatTanks.UI
                 if (s != _states[i]) _anim[i] = s == StarState.Earned ? 1f : s == StarState.Lost ? -1f : 0f;
                 _states[i] = s;
                 stars[i].color = s == StarState.Earned ? starOn : s == StarState.Lost ? starOff : starPossible;
+                var sprite = s == StarState.Earned ? activeSprite : inactiveSprite;
+                if (sprite != null) stars[i].sprite = sprite;
 
                 float a = _anim[i];
                 var rt = stars[i].rectTransform;

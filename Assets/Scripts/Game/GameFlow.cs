@@ -190,7 +190,6 @@ namespace CatTanks
 
             var data = BspLevelGenerator.Generate(Settings, seed, Difficulty, _spawner.SpawnRules());
             var root = _builder.Build(data);
-            _fx.SetRoot(root);
             var ctx = new LevelContext
             {
                 Data = data,
@@ -202,6 +201,7 @@ namespace CatTanks
                 Exit = _builder.Exit.transform,
             };
             Current = ctx;
+            _fx.BindLevel(ctx); // до спавна — чтобы повесить полоски HP на врагов по мере появления
             _spawner.SpawnAll(ctx);
             int pathCells = data.mainPath != null ? data.mainPath.Count : 0;
             ctx.Stars = new LevelStars(ctx, config.stars, pathCells * config.parSecondsPerCell + config.parBonusSeconds);

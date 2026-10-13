@@ -19,6 +19,8 @@ namespace CatTanks.UI
         public Text[] starLabels;
         public Color starOn = new Color32(255, 196, 56, 255);
         public Color starOff = new Color(0.35f, 0.3f, 0.4f, 0.75f);
+        [Tooltip("Картинки звезды: заработанная / нет (star_active / star_inactive). Пусто = одна картинка, разница — цветом")]
+        public Sprite activeSprite, inactiveSprite;
         public float starDelay = 0.3f;      // пауза между звёздами
         public float starPopTime = 0.25f;
 
@@ -78,6 +80,8 @@ namespace CatTanks.UI
                 yield return new WaitForSecondsRealtime(i == 0 ? 0.15f : starDelay);
                 var star = stars[i];
                 star.color = earned[i] ? starOn : starOff;
+                var sprite = earned[i] ? activeSprite : inactiveSprite;
+                if (sprite != null) star.sprite = sprite;
                 StarRevealed?.Invoke(i, earned[i]);
                 if (starLabels != null && i < starLabels.Length)
                     starLabels[i].color = earned[i] ? Color.white : new Color(1, 1, 1, 0.45f);

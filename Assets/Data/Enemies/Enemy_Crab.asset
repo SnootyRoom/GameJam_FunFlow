@@ -26,6 +26,8 @@ MonoBehaviour:
   size: 1.7
   color: {r: 0.95, g: 0.55, b: 0.1, a: 1}
   maxHp: 5
+  boss: 1
+  bossNameplate: {fileID: 2764582443624791143, guid: 1b0b78f32f9a79643b2b21fae8d5b10a, type: 3}
   invulnerableAfterHit: 0.05
   moveSpeed: 1
   aggroRange: 8

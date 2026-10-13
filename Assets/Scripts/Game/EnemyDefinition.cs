@@ -54,6 +54,10 @@ namespace CatTanks
 
         [Header("Здоровье")]
         public int maxHp = 1;
+        [Tooltip("Босс: вместо полоски над головой — большая полоска HP внизу экрана с табличкой имени")]
+        public bool boss = false;
+        [Tooltip("Табличка с именем босса для его полоски HP (boss_name_crab). Пусто = без таблички")]
+        public Sprite bossNameplate;
         public float invulnerableAfterHit = 0.05f;
 
         [Header("Движение и таран (EnemyCrawler)")]

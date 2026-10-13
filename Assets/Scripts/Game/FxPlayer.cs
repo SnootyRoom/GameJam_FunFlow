@@ -12,8 +12,23 @@ namespace CatTanks
 
         public FxPlayer(FxLibrary library) { _lib = library; }
 
-        /// <summary>Куда складывать эффекты (корень текущего уровня).</summary>
-        public void SetRoot(Transform root) { _root = root; }
+
+        /// <summary>Новый уровень: обычным врагам — полоска HP над головой (боссам — нет, у них полоска в HUD).</summary>
+        public void BindLevel(LevelContext ctx)
+        {
+            _root = ctx.Root;
+            ctx.EnemyAdded += AttachHpBar; // ctx живёт ровно один уровень — отписка не нужна
+        }
+
+        void AttachHpBar(GameObject enemy)
+        {
+            if (_lib.enemyHpFrame == null || _lib.enemyHpFill == null || enemy == null) return;
+            var tag = enemy.GetComponent<EnemyTag>();
+            if (tag != null && tag.IsBoss) return;
+            var hp = enemy.GetComponentInChildren<Health>();
+            if (hp == null || hp.maxHp <= 1) return; // ваншот-врагу полоска ни к чему
+            enemy.AddComponent<EnemyHpBar>().Setup(_lib, hp);
+        }
 
         public void Subscribe()
         {

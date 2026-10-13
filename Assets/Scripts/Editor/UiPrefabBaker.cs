@@ -96,15 +96,45 @@ namespace CatTanks.EditorTools
             FillFromArt(ref t.skipButton, "button_skip");
             FillFromArt(ref t.tutorialFish, "finish_003", "Assets/Art/Environment");
             FillFromArt(ref t.ammoIcon, "snarad", "Assets/Art/Characters");
+            // звезда из кода (pixel_star) — только запасной вариант: появилась картинка художника — берём её
+            if (t.starIcon != null && AssetDatabase.GetAssetPath(t.starIcon).StartsWith(UiPaths.GeneratedArt)) t.starIcon = null;
+            FillFromArt(ref t.starIcon, "star_active");
             FillFromArt(ref t.starIcon, "star");
+            FillFromArt(ref t.starInactive, "star_inactive");
+            FillFromArt(ref t.hpIcon, "hp_icon");
+            FillFromArt(ref t.hpFrame, "hp_frame");
+            FillFromArt(ref t.hpSegmentFull, "hp_segment_full");
+            FillFromArt(ref t.hpSegmentEmpty, "hp_segment_empty");
+            FillFromArt(ref t.hpSegmentLost, "hp_segment_lost");
+            FillFromArt(ref t.bossHpFrame, "boss_hp_frame");
+            FillFromArt(ref t.bossHpSegmentFull, "boss_hp_segment_full");
+            FillFromArt(ref t.bossHpSegmentEmpty, "boss_hp_segment_empty");
             if (t.starIcon == null) t.starIcon = SavePng(UIFactory.PixelStarSprite(), "pixel_star", Vector4.zero, FilterMode.Point);
             foreach (var s in new[] { t.startButton, t.tutorialButton, t.settingsButton, t.exitButton,
                                       t.heartFull, t.heartEmpty, t.pauseContinueButton, t.pauseRestartButton, t.pauseTutorialButton,
-                                      t.pauseSettingsButton, t.pauseMainMenuButton, t.nextButton, t.goButton, t.skipButton, t.ammoIcon })
+                                      t.pauseSettingsButton, t.pauseMainMenuButton, t.nextButton, t.goButton, t.skipButton, t.ammoIcon,
+                                      t.starIcon, t.starInactive, t.hpIcon, t.hpFrame, t.hpSegmentFull, t.hpSegmentEmpty,
+                                      t.hpSegmentLost, t.bossHpFrame, t.bossHpSegmentFull, t.bossHpSegmentEmpty })
                 MakeCrisp(s);
+
+            FillWorldUiArt();
 
             EditorUtility.SetDirty(t);
             AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>Полоски HP над врагами — в FxLibrary (они в мире, а не в UI), но картинки лежат рядом с UI.</summary>
+        static void FillWorldUiArt()
+        {
+            foreach (var guid in AssetDatabase.FindAssets("t:" + nameof(CatTanks.FxLibrary)))
+            {
+                var lib = AssetDatabase.LoadAssetAtPath<CatTanks.FxLibrary>(AssetDatabase.GUIDToAssetPath(guid));
+                FillFromArt(ref lib.enemyHpFrame, "enemy_hp_frame");
+                FillFromArt(ref lib.enemyHpFill, "enemy_hp_fill");
+                MakeCrisp(lib.enemyHpFrame);
+                MakeCrisp(lib.enemyHpFill);
+                EditorUtility.SetDirty(lib);
+            }
         }
 
         /// <summary>Пустое поле темы → спрайт из {folder}/{file}.png, если такая картинка есть.</summary>

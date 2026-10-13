@@ -123,6 +123,9 @@ MonoBehaviour:
   minigunSpeed: 10
   minigunBounces: 0
   minigunCooldown: 0.12
+  minigunMagazine: 4
+  minigunReloadTime: 1.2
+  minigunIdleReload: 0.5
   minigunMaxBullets: 4
   minigunDamage: 1
   minigunBulletPrefab: {fileID: 0}
@@ -166,11 +169,86 @@ MonoBehaviour:
   tank: {fileID: 1000000000000000005}
   maxDistance: 15
   bulletRadius: 0.12
-  startWidth: 0.08
-  endWidth: 0.03
-  startColor: {r: 1, g: 1, b: 0.5, a: 0.9}
-  endColor: {r: 1, g: 0.3, b: 0.3, a: 0.3}
+  dotSpacing: 0.32
+  scrollSpeed: 1.2
+  color: {r: 1, g: 0.95, b: 0.6, a: 1}
+  endAlpha: 0.15
+  endMarkerAlpha: 0.85
+  dotSprite: {fileID: 0}
+  bounceSprite: {fileID: 0}
+  endSprite: {fileID: 0}
   sortingOrder: 9
+--- !u!114 &1000000000000000008
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000000000000000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ee736592a694669a91924dd30234de9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  body: {fileID: 2000000000000000002}
+  trackOffset: 0.375
+  trackWidth: 0.25
+  markSpacing: 0.16
+  markLifetime: 4
+  markColor: {r: 0.22, g: 0.17, b: 0.12, a: 0.35}
+  maxMarks: 240
+  markSortingOrder: -8
+  markSprite: {fileID: 0}
+  dust: 1
+  dustSpacing: 0.6
+  dustColor: {r: 0.86, g: 0.8, b: 0.64, a: 0.7}
+  dustSprite: {fileID: 0}
+--- !u!114 &1000000000000000009
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000000000000000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66c542e016bd9a1499ad67ac5c0dc273, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  settings:
+    maxCharges: 2
+    maxUsesPerLevel: 2
+    startCharges: 0
+    maxRange: 10
+    aimTimeScale: 0.35
+    fallTime: 1.1
+    blastRadius: 2.6
+    coreFraction: 0.55
+    coreDamage: 99
+    edgeDamage: 6
+    selfDamage: 2
+    destroyWalls: 1
+  killsPerCharge: 3
+  walnutSprite: {fileID: 21300000, guid: 89df69d1d22b4116bd5bd0f2a15fd1b4, type: 3}
+  aimColor: {r: 1, g: 0.8, b: 0.3, a: 0.95}
+  dangerColor: {r: 1, g: 0.25, b: 0.2, a: 0.95}
+  rangeColor: {r: 0.12, g: 0.14, b: 0.22, a: 0.5}
+--- !u!114 &1000000000000000010
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000000000000000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc5b8c16a4455a8449b63edb2bbe5c5a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  idleVolume: 0.12
+  maxVolume: 0.32
+  idlePitch: 0.75
+  maxPitch: 1.25
 --- !u!50 &1757032840121313625
 Rigidbody2D:
   serializedVersion: 5
@@ -474,41 +552,3 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
   m_BlendShapeWeights: []
---- !u!114 &1000000000000000008
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1000000000000000001}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4ee736592a694669a91924dd30234de9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  body: {fileID: 2000000000000000002}
---- !u!114 &1000000000000000009
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1000000000000000001}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 66c542e016bd9a1499ad67ac5c0dc273, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  walnutSprite: {fileID: 21300000, guid: 89df69d1d22b4116bd5bd0f2a15fd1b4, type: 3}
---- !u!114 &1000000000000000010
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1000000000000000001}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cc5b8c16a4455a8449b63edb2bbe5c5a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 

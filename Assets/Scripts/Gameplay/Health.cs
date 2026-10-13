@@ -58,16 +58,20 @@ namespace CatTanks
 
         public void Damage(int amount) => Damage(amount, null, false);
 
+        /// <summary>
+        /// Урон. byUltimate — удар ульты: он не отменяется неуязвимостью после попадания
+        /// (иначе орех, упавший сразу после снаряда, мог «не задеть» врага).
+        /// </summary>
         public void Damage(int amount, Team? attacker, bool byUltimate = false)
         {
-            if (IsDead || Time.time < _invulUntil) return;
+            if (IsDead || (!byUltimate && Time.time < _invulUntil)) return;
             LastAttacker = attacker;
             LastHitByUltimate = byUltimate;
             Hp -= amount;
             _invulUntil = Time.time + invulnerableAfterHit;
             _flashUntil = Time.time + 0.08f;
             SetFlash(true);
-            OnHpChanged?.Invoke(Hp, maxHp);
+            Notify(OnHpChanged, Hp, maxHp);
             if (Hp <= 0) Die();
         }
 
@@ -75,7 +79,7 @@ namespace CatTanks
         {
             if (IsDead || Hp >= maxHp) return;
             Hp = Mathf.Min(maxHp, Hp + amount);
-            OnHpChanged?.Invoke(Hp, maxHp);
+            Notify(OnHpChanged, Hp, maxHp);
         }
 
         void Update()
@@ -94,11 +98,34 @@ namespace CatTanks
                 if (_renderers[i] != null) _renderers[i].color = on ? flashColor : _colors[i];
         }
 
+        // Смерть обязана довестись до конца, что бы ни случилось у слушателей (звук, эффекты, HUD).
+        // Иначе получается «зомби»: HP ≤ 0, Damage его игнорирует, а объект живёт — враг неуязвим для всего.
         void Die()
         {
-            OnDeath?.Invoke(); // GameFlow слушает игрока, LevelContext — врагов
-            if (IsPlayer) gameObject.SetActive(false);
-            else Destroy(gameObject);
+            try
+            {
+                OnDeath?.Invoke(); // GameFlow слушает игрока, LevelContext — врагов
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e, this); // ошибку видно в Console, но враг всё равно умирает
+            }
+            finally
+            {
+                if (IsPlayer) gameObject.SetActive(false);
+                else Destroy(gameObject);
+            }
+        }
+
+        /// <summary>Сообщить слушателям об изменении HP; ошибка одного слушателя не мешает урону и смерти.</summary>
+        void Notify(Action<int, int> handler, int hp, int max)
+        {
+            if (handler == null) return;
+            foreach (Action<int, int> h in handler.GetInvocationList())
+            {
+                try { h(hp, max); }
+                catch (Exception e) { Debug.LogException(e, this); }
+            }
         }
     }
 }

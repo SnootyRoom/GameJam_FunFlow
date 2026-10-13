@@ -35,5 +35,17 @@ namespace CatTanks
         public Effect enemyDeath = new Effect { size = 1.4f, duration = 0.35f, growTo = 1.6f };
         [Tooltip("Удар ореха (ульта). Размер умножается на радиус удара")]
         public Effect nutImpact = new Effect { size = 1.2f, duration = 0.5f, growTo = 1.8f };
+
+        [Header("Полоска HP над врагом (кроме боссов)")]
+        [Tooltip("Рамка enemy_hp_frame. Пусто = полосок нет. Заполняется сама командой CatTanks → UI → Собрать префабы UI")]
+        public Sprite enemyHpFrame;
+        [Tooltip("Заливка enemy_hp_fill — сжимается по оставшемуся здоровью")]
+        public Sprite enemyHpFill;
+        [Tooltip("Ширина полоски в клетках")]
+        public float enemyHpWidth = 0.75f;
+        [Tooltip("Насколько выше центра врага (в долях его размера + запас)")]
+        public float enemyHpOffset = 0.2f;
+        [Tooltip("Показывать только после первого попадания")]
+        public bool enemyHpOnlyWhenHurt = true;
     }
 }

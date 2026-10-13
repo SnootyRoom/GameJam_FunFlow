@@ -25,7 +25,16 @@ MonoBehaviour:
   panelSprite: {fileID: 0}
   ultIcon: {fileID: 21300000, guid: 89df69d1d22b4116bd5bd0f2a15fd1b4, type: 3}
   ammoIcon: {fileID: 251537664351223349, guid: 44e4112211a35a746a3339ee342faec1, type: 3}
-  starIcon: {fileID: 21300000, guid: 2ad7024618573894c90536b233ee8817, type: 3}
+  starIcon: {fileID: 8226350318627634401, guid: ae32ee2ba766c4e4e844b1a73d0e09f5, type: 3}
+  starInactive: {fileID: -2092928131460690439, guid: 0bbc941b7b9420c4b8a25dd7aa477f17, type: 3}
+  hpIcon: {fileID: -6367754962949870957, guid: 3def13759bcc3cc43a9d3c738947587c, type: 3}
+  hpFrame: {fileID: 4969504889265152245, guid: 4f8d19fe0be04364fadb8c89d56964fe, type: 3}
+  hpSegmentFull: {fileID: -5222434258127484749, guid: a2cd98bc7b7649b4994f321d9a9448dc, type: 3}
+  hpSegmentEmpty: {fileID: -6026541935255709868, guid: 7a6d242106b79a2449c44684a6016e9c, type: 3}
+  hpSegmentLost: {fileID: 8555968508979981539, guid: f06e77827d38a814d9d747327e3d3e3e, type: 3}
+  bossHpFrame: {fileID: 8143290299296920346, guid: 18a0e5f453f733f4592dd1b71d54f302, type: 3}
+  bossHpSegmentFull: {fileID: -125150186448926647, guid: 22e233885c41cb747a7cd03b42f70b2f, type: 3}
+  bossHpSegmentEmpty: {fileID: 1037614906544664176, guid: 92949ae76ec517d4eac50dfa797c9525, type: 3}
   startButton: {fileID: -6581494120170603413, guid: a762cbb6e5691bc4bac8936ced931e86, type: 3}
   tutorialButton: {fileID: -1793353510728061614, guid: 13cf438ac755ee042b04b9cae917ad78, type: 3}
   settingsButton: {fileID: 7540231731931389959, guid: 7fb8db127de679c49927d7ac5decbff3, type: 3}

@@ -23,6 +23,7 @@ namespace CatTanks
 
         public event Action<GameObject> EnemyKilled;      // враг умер (объект ещё существует до конца кадра)
         public event Action<int> EnemyCountChanged;       // сколько живых — для счётчика, открытия выхода и т.п.
+        public event Action<GameObject> EnemyAdded;       // враг появился (спавн уровня или подкрепление) — для полосок HP и т.п.
 
         public bool PlayerAlive => Player != null && Player.activeInHierarchy;
 
@@ -50,14 +51,26 @@ namespace CatTanks
             Enemies.Add(enemy);
             var hp = enemy.GetComponentInChildren<Health>();
             if (hp != null) hp.OnDeath += () => HandleEnemyDeath(enemy);
+            EnemyAdded?.Invoke(enemy);
             EnemyCountChanged?.Invoke(Enemies.Count);
         }
 
         void HandleEnemyDeath(GameObject enemy)
         {
             if (!Enemies.Remove(enemy)) return;
-            EnemyKilled?.Invoke(enemy);
-            EnemyCountChanged?.Invoke(Enemies.Count);
+            // каждый слушатель отдельно: ошибка в звуке или эффектах не должна сломать счётчик врагов и звёзды
+            Safe(EnemyKilled, enemy);
+            Safe(EnemyCountChanged, Enemies.Count);
+        }
+
+        static void Safe<T>(Action<T> handler, T arg)
+        {
+            if (handler == null) return;
+            foreach (Action<T> h in handler.GetInvocationList())
+            {
+                try { h(arg); }
+                catch (Exception e) { Debug.LogException(e); }
+            }
         }
     }
 

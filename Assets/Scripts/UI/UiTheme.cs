@@ -24,7 +24,15 @@ namespace CatTanks.UI
         public Sprite panelSprite;            // полоса баннера «Level Complete»
         public Sprite ultIcon;                // иконка ульты в HUD (Assets/Art/Ult/walnut)
         public Sprite ammoIcon;               // иконка снаряда в HUD (пусто = подставится Assets/Art/Characters/snarad)
-        public Sprite starIcon;               // звезда (пусто = пиксельная из Assets/Art/UI/Generated или Assets/Art/UI/star)
+        public Sprite starIcon;               // заработанная звезда (star_active; пусто = пиксельная из кода)
+        public Sprite starInactive;           // ещё не / не заработанная (star_inactive; пусто = та же, но тёмная)
+
+        [Header("Здоровье (пусто = подставятся из Assets/Art/UI/hp_*, boss_hp_*; без рамки — сердечки)")]
+        public Sprite hpIcon;                 // 64×64, слева от полоски кота
+        public Sprite hpFrame;                // 328×64, внутри — 16 px рамки с каждой стороны
+        public Sprite hpSegmentFull, hpSegmentEmpty, hpSegmentLost;
+        public Sprite bossHpFrame;            // 360×64
+        public Sprite bossHpSegmentFull, bossHpSegmentEmpty;
 
         [Header("Кнопки главного меню (картинки с готовым текстом; 456×120; пусто = бумажная кнопка с текстом)")]
         public Sprite startButton;

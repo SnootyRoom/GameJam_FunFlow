@@ -72,6 +72,9 @@ namespace CatTanks
                 ? Instantiate(def.prefab, pos, Quaternion.identity, ctx.Root)
                 : Placeholders.Enemy(def, ctx.Root, pos);
             def.ApplyTo(go);
+            var tag = go.GetComponent<EnemyTag>();
+            if (tag == null) tag = go.AddComponent<EnemyTag>();
+            tag.definition = def;
 
             ctx.RegisterEnemy(go);
             InitActors(go, ctx);

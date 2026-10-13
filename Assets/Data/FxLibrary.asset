@@ -54,3 +54,8 @@ MonoBehaviour:
     duration: 0.5
     growTo: 1.8
     randomRotation: 1
+  enemyHpFrame: {fileID: -806019047373694110, guid: c6d1cccc85dea874aa59bbf392a7d88a, type: 3}
+  enemyHpFill: {fileID: -7072703618303803612, guid: 187d24cd08b3f62459ed5e3ef2fe3b23, type: 3}
+  enemyHpWidth: 0.75
+  enemyHpOffset: 0.2
+  enemyHpOnlyWhenHurt: 1
