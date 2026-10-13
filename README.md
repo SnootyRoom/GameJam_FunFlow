@@ -145,4 +145,4 @@ ArtSource/          исходники Aseprite и Lua-скрипты рисов
 
 ## Инструменты
 
-Unity 6 (URP 2D), Aseprite.
+Unity 6 (URP 2D), Aseprite, Claude code, Visual Studio 2026.
