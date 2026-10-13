@@ -128,9 +128,9 @@ ArtSource/          исходники Aseprite и Lua-скрипты рисов
 | Участник | Роль |
 |---|---|
 | [Ульяна](https://github.com/Uliana-cmd) | геймдизайн, художник |
-| [Виктория](https://github.com/VikaSav13012007) | художники | |
+| [Виктория](https://github.com/VikaSav13012007) | художник | |
 | [Богдан](https://github.com/SnootyRoom) | UI / UX, программирование, музыка|
-| [Андрей](https://github.com/shizm)| программирование  | 
+| [Андрей](https://github.com/shizhm)| программирование, звуки | 
 | [Иван](https://github.com/logutenko713)| программирование |
 
 ## Ресурсы
