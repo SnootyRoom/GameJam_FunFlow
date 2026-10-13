@@ -27,6 +27,7 @@ namespace CatTanks
             PixelButton.Pressed += OnUiClick;
             TitleView.Dismissed += OnTitleDismissed;
             EnemyShooter.ShotTelegraphed += OnShotTelegraphed;
+            EnemyCrawler.AttackTelegraphed += OnCrawlerTelegraphed;
             PlayerTank.MinigunReloadStarted += OnReloadStarted;
             PlayerTank.MinigunReloaded += OnReloaded;
             BannerView.StarRevealed += OnStarRevealed;
@@ -38,6 +39,7 @@ namespace CatTanks
             _flow.OnPlayerHpChanged += OnPlayerHp;
             _flow.OnEnemyKilled += OnEnemyKilled;
             _flow.OnExitBlocked += OnExitBlocked;
+            _flow.OnGameOver += OnGameOver;
         }
 
         public void Unsubscribe()
@@ -54,6 +56,7 @@ namespace CatTanks
             PixelButton.Pressed -= OnUiClick;
             TitleView.Dismissed -= OnTitleDismissed;
             EnemyShooter.ShotTelegraphed -= OnShotTelegraphed;
+            EnemyCrawler.AttackTelegraphed -= OnCrawlerTelegraphed;
             PlayerTank.MinigunReloadStarted -= OnReloadStarted;
             PlayerTank.MinigunReloaded -= OnReloaded;
             BannerView.StarRevealed -= OnStarRevealed;
@@ -64,6 +67,7 @@ namespace CatTanks
             _flow.OnPlayerHpChanged -= OnPlayerHp;
             _flow.OnEnemyKilled -= OnEnemyKilled;
             _flow.OnExitBlocked -= OnExitBlocked;
+            _flow.OnGameOver -= OnGameOver;
         }
 
         // ----- бой -----
@@ -123,8 +127,10 @@ namespace CatTanks
         void OnUiClick() => Sfx.Play(SfxId.UiClick, 0.8f, 0.02f);
         void OnTitleDismissed() => Sfx.Play(SfxId.MenuEnter, 0.9f, 0f);
         void OnShotTelegraphed(Vector2 at) => Sfx.PlayAt(SfxId.EnemyCharge, at, 0.55f, 0.08f);
+        void OnCrawlerTelegraphed(Vector2 at) => Sfx.PlayAt(SfxId.EnemyCharge, at, 0.5f, 0.08f, 1.35f); // выше и короче — «клещ готовится»
         void OnReloadStarted() => Sfx.Play(SfxId.ReloadStart, 0.5f, 0.05f);
         void OnReloaded() => Sfx.Play(SfxId.ReloadEnd, 0.6f, 0.03f);
+        void OnGameOver() => Sfx.Play(SfxId.DeathKnell, 0.8f, 0f); // погребальный колокол
         // звёзды: каждая следующая — выше; не заработанная — глухой щелчок
         void OnStarRevealed(int index, bool earned)
         {
@@ -150,6 +156,7 @@ namespace CatTanks
                 case GameState.Menu: Music.Play(MusicTrack.Menu); break;
                 case GameState.Paused: Music.Play(MusicTrack.Battle, muffled: true); break;
                 case GameState.PlayerDead: Music.Play(MusicTrack.Battle, duck: 0.5f); break;
+                case GameState.GameOver: Music.Play(MusicTrack.Menu, duck: 0.7f); break; // после боя — спокойная тема
                 default: Music.Play(MusicTrack.Battle); break;
             }
         }

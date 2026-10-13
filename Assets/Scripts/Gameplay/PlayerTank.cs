@@ -22,6 +22,8 @@ namespace CatTanks
         public int maxBounces = 1;
         public float fireCooldown = 0.3f;
         public int maxBulletsAlive = 5;     // общий лимит снарядов в полёте для обоих оружий
+        [Tooltip("Урон основного снаряда. Здоровье врагов: клещ 2, жук 4, краб 10 — основной выстрел убивает клеща, пулемёт — нет")]
+        public int bulletDamage = 2;
         public GameObject bulletPrefab;
         [Tooltip("Спрайт снаряда (если нет префаба). Пусто = кружок цвета bulletColor")]
         public Sprite bulletSprite;
@@ -41,6 +43,8 @@ namespace CatTanks
         [Tooltip("Пулемёт стреляет, только пока в полёте меньше стольких снарядов — чтобы не забивал лимит основного")]
         public int minigunMaxBullets = 4;
         public int minigunDamage = 1;
+        [Tooltip("Размер пули пулемёта относительно основного снаряда")]
+        public float minigunBulletScale = 0.6f;
         public GameObject minigunBulletPrefab;
         public Color minigunColor = new Color(0.85f, 0.45f, 0.2f);
 
@@ -130,15 +134,16 @@ namespace CatTanks
         void FireMain()
         {
             _nextFire = Time.time + fireCooldown;
-            Bullet.Spawn(MuzzlePosition, AimDirection, gameObject, bulletColor, bulletSpeed, maxBounces, bulletPrefab, bulletSprite);
+            Bullet.Spawn(MuzzlePosition, AimDirection, gameObject, bulletColor, bulletSpeed, maxBounces, bulletPrefab, bulletSprite,
+                         1f, bulletDamage);
         }
 
         void FireMinigun()
         {
             _nextMinigunFire = Time.time + minigunCooldown;
-            var b = Bullet.Spawn(MuzzlePosition, AimDirection, gameObject, minigunColor, minigunSpeed, minigunBounces,
-                                 minigunBulletPrefab != null ? minigunBulletPrefab : bulletPrefab, bulletSprite);
-            b.damage = minigunDamage;
+            Bullet.Spawn(MuzzlePosition, AimDirection, gameObject, minigunColor, minigunSpeed, minigunBounces,
+                         minigunBulletPrefab != null ? minigunBulletPrefab : bulletPrefab, bulletSprite,
+                         minigunBulletScale, minigunDamage);
         }
 
         void FixedUpdate()

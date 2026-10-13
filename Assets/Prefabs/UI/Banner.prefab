@@ -719,7 +719,8 @@ MonoBehaviour:
   levelCompleteSubtitle: The bugs are scattering. Rolling on...
   perfectSubtitle: Purr-fect run!
   deathTitle: The Cat Got Hit!
-  deathSubtitle: Trying again...
+  deathSubtitle: 'Lives left: {0}. Trying again...'
+  lastLifeSubtitle: Game over...
 --- !u!1 &8179832215202622560
 GameObject:
   m_ObjectHideFlags: 0

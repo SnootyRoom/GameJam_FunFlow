@@ -490,6 +490,7 @@ MonoBehaviour:
   bulletsCollide: 1
   levelCompleteDelay: 1.5
   restartDelay: 1.5
+  startLives: 1
   starsShowTime: 1.2
   debugKeys: 0
 --- !u!1 &933727910

@@ -57,6 +57,7 @@ namespace CatTanks.UI
             flow.OnLevelCompleted += HandleLevelCompleted;
             flow.OnPlayerKilled += HandlePlayerKilled;
             flow.OnExitBlocked += HandleExitBlocked;
+            flow.OnGameOver += HandleGameOver;
             if (_ui.tutorial != null) _ui.tutorial.Closed += HandleTutorialClosed;
             if (_ui.menu.title != null) _ui.menu.title.Finished += HandleTitleFinished;
         }
@@ -76,6 +77,7 @@ namespace CatTanks.UI
             flow.OnLevelCompleted -= HandleLevelCompleted;
             flow.OnPlayerKilled -= HandlePlayerKilled;
             flow.OnExitBlocked -= HandleExitBlocked;
+            flow.OnGameOver -= HandleGameOver;
             if (_ui.hud != null) _ui.hud.Bind(flow, null); // виджеты отписываются от танка и уровня
         }
 
@@ -101,6 +103,13 @@ namespace CatTanks.UI
             On(p.fullscreen, ToggleFullscreen);
             On(p.sound, ToggleSound);
             On(p.settingsBack, () => p.ShowPage(PauseView.Page.Main));
+
+            var g = _ui.gameOver;
+            if (g != null)
+            {
+                On(g.tryAgain, flow.StartNewGame);
+                On(g.mainMenu, flow.GoToMenu);
+            }
 
             RefreshSettingsLabels(Screen.fullScreen);
         }
@@ -205,8 +214,9 @@ namespace CatTanks.UI
             _ui.pause.gameObject.SetActive(s == GameState.Paused);
             if (s == GameState.Paused) _ui.pause.ShowPage(PauseView.Page.Main); // пауза всегда открывается с главной
             if (s != GameState.Menu && s != GameState.Paused) HideTutorial(); // Esc на паузе — обучение закрывается вместе с ней
-            _ui.hud.gameObject.SetActive(s != GameState.Menu);
+            _ui.hud.gameObject.SetActive(s != GameState.Menu && s != GameState.GameOver);
             _ui.banner.gameObject.SetActive(s == GameState.LevelComplete || s == GameState.PlayerDead);
+            if (_ui.gameOver != null && s != GameState.GameOver) _ui.gameOver.gameObject.SetActive(false);
             Cursor.visible = s != GameState.Playing; // в бою вместо курсора — прицел (CrosshairWidget)
         }
 
@@ -244,7 +254,14 @@ namespace CatTanks.UI
             }
             _ui.banner.ShowLevelComplete(ctx.LevelNumber, stars?.Result, labels);
         }
-        void HandlePlayerKilled(LevelContext ctx) => _ui.banner.ShowDeath();
+        void HandlePlayerKilled(LevelContext ctx) => _ui.banner.ShowDeath(flow.Lives);
+
+        void HandleGameOver()
+        {
+            if (_ui.gameOver == null) { flow.GoToMenu(); return; } // префаб собран старой версией сборщика
+            _ui.gameOver.Show(flow.LevelNumber, flow.TotalStars, GameSettings.BestLevel, GameSettings.BestStars,
+                              GameSettings.LastRunWasRecord);
+        }
         void HandleExitBlocked() => _ui.hud.ShowToast(exitBlockedText, 1.5f);
 
 #if UNITY_EDITOR

@@ -11,5 +11,6 @@ namespace CatTanks.UI
         public PauseView pause;
         public MainMenuView menu;
         public TutorialView tutorial;
+        public GameOverView gameOver;
     }
 }

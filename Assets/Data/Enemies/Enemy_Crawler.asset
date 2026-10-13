@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   prefab: {fileID: 0}
   footprint: 1
-  maxHp: 1
+  maxHp: 2
   invulnerableAfterHit: 0.05
   moveSpeed: 2.2
   aggroRange: 9

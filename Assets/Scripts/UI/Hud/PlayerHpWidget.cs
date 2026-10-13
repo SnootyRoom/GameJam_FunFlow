@@ -1,4 +1,5 @@
-// Здоровье кота: иконка (hp_icon) и полоска из сегментов (hp_frame + hp_segment_*). Подписывается на Health игрока сам.
+// Здоровье кота: иконка (hp_icon) и полоска из сегментов (hp_frame + hp_segment_*), один сегмент = одно HP.
+// Сколько сегментов — решает Health.maxHp игрока. Подписывается на Health игрока сам.
 using UnityEngine;
 using UnityEngine.UI;
 

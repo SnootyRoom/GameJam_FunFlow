@@ -20,6 +20,7 @@ namespace CatTanks
         public Transform Exit;
         public readonly List<GameObject> Enemies = new List<GameObject>();   // только живые
         public LevelStars Stars;            // звёзды этого уровня (создаёт GameFlow после спавна)
+        public DifficultyScaling Scaling;   // рост сложности (из LevelConfig); null — без роста
 
         public event Action<GameObject> EnemyKilled;      // враг умер (объект ещё существует до конца кадра)
         public event Action<int> EnemyCountChanged;       // сколько живых — для счётчика, открытия выхода и т.п.

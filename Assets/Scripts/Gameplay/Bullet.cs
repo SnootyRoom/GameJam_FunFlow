@@ -56,9 +56,11 @@ namespace CatTanks
 
         /// <summary>
         /// Создаёт снаряд. Вид: prefab, иначе sprite (в исходных цветах), иначе кружок-примитив цвета color.
+        /// scale — размер относительно обычного снаряда (и картинка, и радиус попадания), damage — урон.
         /// </summary>
         public static Bullet Spawn(Vector2 position, Vector2 direction, GameObject owner, Color color,
-                                   float speed, int maxBounces, GameObject prefab = null, Sprite sprite = null)
+                                   float speed, int maxBounces, GameObject prefab = null, Sprite sprite = null,
+                                   float scale = 1f, int damage = 1)
         {
             // снаряд живёт там же, где стрелок (в корне уровня) — и удаляется вместе с уровнем
             Transform parent = owner != null ? owner.transform.parent : null;
@@ -79,11 +81,21 @@ namespace CatTanks
             b.Team = ownerHp != null ? ownerHp.team : Team.Enemy;
             b.speed = speed;
             b.maxBounces = maxBounces;
+            b.damage = damage;
+            if (!Mathf.Approximately(scale, 1f))
+            {
+                go.transform.localScale *= scale;
+                b.radius *= scale;
+            }
             b.SetDirection(direction);
             b._checkSpawn = true; // упор в стену/врага проверим в первом кадре — когда стрелок уже выставил урон
             Fired?.Invoke(b);
             return b;
         }
+
+        /// <summary>Кот получает от любого снаряда 1 HP (у него 3 HP на жизнь), враги — полный урон снаряда.
+        /// Иначе свой рикошет основным орудием (урон 2) отнимал бы у кота сразу две трети здоровья.</summary>
+        int DamageTo(Health hp) => hp.IsPlayer ? Mathf.Min(damage, 1) : damage;
 
         void OnEnable() { Alive.Add(this); _dieAt = Time.time + lifetime; }
         void OnDisable() { Alive.Remove(this); }
@@ -106,7 +118,7 @@ namespace CatTanks
             var hp = blocker.GetComponentInParent<Health>();
             if (hp != null)
             {
-                if (Health.CanHurt(Team, hp)) hp.Damage(damage, Team);
+                if (Health.CanHurt(Team, hp)) hp.Damage(DamageTo(hp), Team);
                 HitTarget?.Invoke(pos, hp);
             }
             else HitWall?.Invoke(pos);
@@ -171,7 +183,7 @@ namespace CatTanks
                 var hp = hit.collider.GetComponentInParent<Health>();
                 if (hp != null)
                 {
-                    if (Health.CanHurt(Team, hp)) hp.Damage(damage, Team); // без friendly fire снаряд просто гаснет о своего
+                    if (Health.CanHurt(Team, hp)) hp.Damage(DamageTo(hp), Team); // без friendly fire снаряд просто гаснет о своего
                     HitTarget?.Invoke(hit.centroid, hp);
                     Kill();
                     return;

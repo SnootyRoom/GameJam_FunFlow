@@ -34,6 +34,7 @@ namespace CatTanks.UI
             view.hud = b.BuildHud(canvas.transform);
             view.banner = b.BuildBanner(canvas.transform);
             view.pause = b.BuildPause(canvas.transform);
+            view.gameOver = b.BuildGameOver(canvas.transform);
             view.menu = b.BuildMenu(canvas.transform);
             view.tutorial = b.BuildTutorial(canvas.transform);
             return view;
@@ -386,6 +387,48 @@ namespace CatTanks.UI
             v.ShowPage(PauseView.Page.Main);
             rt.gameObject.SetActive(false);
             return v;
+        }
+
+        // ------------------------------------------------------------------ Game Over
+
+        /// <summary>Карточка в стиле паузы: GAME OVER, итог забега, рекорд, «ещё раз» и «в меню».</summary>
+        GameOverView BuildGameOver(Transform root)
+        {
+            var rt = UIFactory.Stretch(root, "GameOver");
+            var v = rt.gameObject.AddComponent<GameOverView>();
+            UIFactory.Image(rt, null, t.pauseBackdrop, true); // затемнение замершей арены
+
+            const float w = 900f;
+            var card = Card(rt, "Card", "GAME OVER", new Vector2(w, 880));
+            v.card = card;
+            InkText(card, "Lives", "THE CAT IS OUT OF HP", new Vector2(0, -215), new Vector2(w - 80, 60)).fontSize = 28;
+            v.level = InkText(card, "Level", "REACHED LEVEL 1", new Vector2(0, -295), new Vector2(w - 80, 70));
+            v.stars = InkText(card, "Stars", "STARS: 0", new Vector2(0, -365), new Vector2(w - 80, 70));
+            var best = InkText(card, "Best", "BEST: LEVEL 1, 0 STARS", new Vector2(0, -432), new Vector2(w - 80, 50));
+            best.fontSize = 24;
+            best.color = Color.Lerp(t.pauseInk, t.pausePaperShade, 0.45f);
+            v.best = best;
+
+            var record = InkText(card, "NewRecord", "NEW RECORD!", new Vector2(0, -495), new Vector2(w - 80, 60));
+            record.color = t.pauseHighlight;
+            record.fontSize = 36;
+            v.newRecord = record.gameObject;
+
+            CardDivider(card, -545, w - 2 * PausePadding);
+            v.tryAgain = PauseLikeButton(card, -640, t.pauseRestartButton, "TRY AGAIN");
+            v.mainMenu = PauseLikeButton(card, -780, t.pauseMainMenuButton, "MAIN MENU");
+            rt.gameObject.SetActive(false);
+            return v;
+        }
+
+        /// <summary>Кнопка как в паузе (картинка pause_* или бумажная плашка), по центру карточки на высоте y.</summary>
+        PixelButton PauseLikeButton(RectTransform card, float y, Sprite art, string label)
+        {
+            var anchor = new Vector2(0.5f, 1);
+            var pos = new Vector2(0, y);
+            if (art != null) return PixelButton.CreateImage(card, label, anchor, pos, art, PauseScale, null);
+            return PixelButton.CreatePaper(card, label, anchor, pos, new Vector2(PauseButtonW, PauseButtonH), _paper, PauseBlock,
+                                           label, _font, 36, t.pauseInk, t.pauseHighlight);
         }
 
         /// <summary>Заголовок бумажной карточки и полоса-разделитель под ним. width — ширина разделителя.</summary>

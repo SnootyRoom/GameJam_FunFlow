@@ -1,7 +1,7 @@
 // Команда редактора CatTanks → UI → Собрать префабы UI.
 // 1) Сохраняет сгенерированные кодом пиксельные заготовки (подложка, стрелка, круг…) в PNG — префабы
 //    не могут ссылаться на картинки, созданные в памяти.
-// 2) Собирает UI по теме (GameUIBuilder) и сохраняет: Hud, Banner, Pause, MainMenu, Tutorial — отдельные префабы,
+// 2) Собирает UI по теме (GameUIBuilder) и сохраняет: Hud, Banner, Pause, GameOver, MainMenu, Tutorial — отдельные префабы,
 //    GameCanvas — холст, в который они вложены.
 // 3) Подставляет GameCanvas в GameUI открытой сцены.
 // Пересборка ПЕРЕЗАПИСЫВАЕТ ручные правки в этих префабах — команда спросит подтверждение.
@@ -39,6 +39,7 @@ namespace CatTanks.EditorTools
                 SaveScreen(view.pause.gameObject, "Pause");
                 SaveScreen(view.menu.gameObject, "MainMenu");
                 SaveScreen(view.tutorial.gameObject, "Tutorial");
+                SaveScreen(view.gameOver.gameObject, "GameOver");
 
                 var canvas = PrefabUtility.SaveAsPrefabAsset(view.gameObject, UiPaths.CanvasPrefab);
                 AssignToScene(canvas.GetComponent<GameUIView>(), theme);

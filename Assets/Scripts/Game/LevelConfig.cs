@@ -14,6 +14,9 @@ namespace CatTanks
         [Range(1, 5)] public int startDifficulty = 1;
         [Range(1, 5)] public int maxDifficulty = 5;
 
+        [Header("Рост сложности (скорость и злость врагов от уровня к уровню)")]
+        public DifficultyScaling scaling = new DifficultyScaling();
+
         [Header("Звёзды за уровень")]
         [Tooltip("Условия звёзд по порядку. Первая обычно ReachExit — она даётся за само прохождение")]
         public StarRule[] stars = { StarRule.ReachExit, StarRule.KillAll, StarRule.NoDamage };

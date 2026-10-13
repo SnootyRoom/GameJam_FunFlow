@@ -29,7 +29,9 @@ namespace CatTanks.UI
         public string levelCompleteSubtitle = "The bugs are scattering. Rolling on...";
         public string perfectSubtitle = "Purr-fect run!";
         public string deathTitle = "The Cat Got Hit!";
-        public string deathSubtitle = "Trying again...";
+        [Tooltip("{0} — сколько жизней осталось")]
+        public string deathSubtitle = "Lives left: {0}. Trying again...";
+        public string lastLifeSubtitle = "Game over...";
 
         /// <summary>Звезда показана (номер, заработана ли) — для звука.</summary>
         public static event Action<int, bool> StarRevealed;
@@ -47,11 +49,12 @@ namespace CatTanks.UI
             if (hasStars) StartCoroutine(RevealStars(earned, labels));
         }
 
-        public void ShowDeath()
+        /// <summary>Кот погиб. livesLeft — сколько жизней осталось (0 — дальше Game Over).</summary>
+        public void ShowDeath(int livesLeft)
         {
             StopAllCoroutines();
             if (starsRow != null) starsRow.gameObject.SetActive(false);
-            Show(deathTitle, deathSubtitle);
+            Show(deathTitle, livesLeft > 0 ? string.Format(deathSubtitle, livesLeft) : lastLifeSubtitle);
         }
 
         void Show(string t, string s)

@@ -27,15 +27,15 @@ namespace CatTanks
         /// <summary>Куда класть точки пунктира (корень уровня — чтобы не крутились со стрелком и удалялись с уровнем).</summary>
         public void SetDotsParent(Transform parent) { _dotsParent = parent; }
 
-        /// <summary>Каждый кадр зарядки. progress 0…1 — сколько осталось до выстрела.</summary>
-        public void Show(Vector2 muzzle, Vector2 dir, float bulletRadius, int bounces, float progress)
+        /// <summary>Каждый кадр зарядки. progress 0…1 — сколько осталось до выстрела. drawLine = false — только мигание (рывок клеща).</summary>
+        public void Show(Vector2 muzzle, Vector2 dir, float bulletRadius, int bounces, float progress, bool drawLine = true)
         {
             if (!_showing) Begin();
             // мигание ускоряется к выстрелу
             bool on = Mathf.Repeat(progress * Mathf.Lerp(3f, 9f, progress), 1f) < 0.5f;
             for (int i = 0; i < _renderers.Length; i++)
                 if (_renderers[i] != null) _renderers[i].color = Color.Lerp(_colors[i], blinkColor, on ? 0.85f : 0.2f);
-            if (showLine) DrawLine(muzzle, dir, bulletRadius, bounces, Mathf.Lerp(0.35f, 1f, progress));
+            if (showLine && drawLine) DrawLine(muzzle, dir, bulletRadius, bounces, Mathf.Lerp(0.35f, 1f, progress));
         }
 
         public void Hide()

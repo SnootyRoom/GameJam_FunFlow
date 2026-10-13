@@ -1,4 +1,4 @@
-// Ход игры: меню → уровень → победа/смерть → следующий уровень. Пауза, сложность, события для UI.
+// Ход игры: меню → уровень → победа/смерть → следующий уровень; жизни кончились — Game Over. Пауза, сложность, события для UI.
 // Синглтона нет: UI получает ссылку через инспектор, игрок и враги — LevelContext через Init.
 using System;
 using System.Collections;
@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace CatTanks
 {
-    public enum GameState { Menu, Playing, Paused, LevelComplete, PlayerDead }
+    public enum GameState { Menu, Playing, Paused, LevelComplete, PlayerDead, GameOver }
 
     [RequireComponent(typeof(LevelBuilder), typeof(EntitySpawner))]
     public class GameFlow : MonoBehaviour
@@ -30,6 +30,8 @@ namespace CatTanks
         public bool bulletsCollide = true;
         public float levelCompleteDelay = 1.5f;      // сколько показывать «Уровень пройден»
         public float restartDelay = 1.5f;            // через сколько перезапуск после смерти
+        [Tooltip("Попыток на забег. 1 — смерть сразу ведёт к Game Over (здоровье кота — в его Health.maxHp)")]
+        public int startLives = 1;
         [Tooltip("Сколько дольше висит «Уровень пройден», чтобы звёзды успели вылететь")]
         public float starsShowTime = 1.2f;
         public bool debugKeys = true;                // R — новый уровень, N — пропустить
@@ -40,6 +42,8 @@ namespace CatTanks
         public int Difficulty { get; private set; }
         /// <summary>Звёзд собрано за текущий забег (с нажатия Play).</summary>
         public int TotalStars { get; private set; }
+        /// <summary>Сколько жизней осталось в этом забеге.</summary>
+        public int Lives { get; private set; }
         /// <summary>Esc не ставит паузу (например, пока поверх арены открыто обучение).</summary>
         public bool PauseBlocked { get; set; }
 
@@ -52,6 +56,7 @@ namespace CatTanks
         public event Action<GameObject> OnEnemyKilled;
         public event Action<int> OnEnemyCountChanged;         // сколько врагов живо
         public event Action OnExitBlocked;                    // въехал в Б, но враги ещё живы
+        public event Action OnGameOver;                       // жизни кончились (итог забега — LevelNumber, TotalStars)
 
         LevelBuilder _builder;
         EntitySpawner _spawner;
@@ -120,6 +125,7 @@ namespace CatTanks
         {
             LevelNumber = 1;
             TotalStars = 0;
+            Lives = Mathf.Max(1, startLives);
             Difficulty = config.startDifficulty;
             LoadLevel(Settings.seed); // фиксированный сид из конфига (0 = случайный)
         }
@@ -199,6 +205,7 @@ namespace CatTanks
                 LevelNumber = LevelNumber,
                 Difficulty = Difficulty,
                 Exit = _builder.Exit.transform,
+                Scaling = config.scaling,
             };
             Current = ctx;
             _fx.BindLevel(ctx); // до спавна — чтобы повесить полоски HP на врагов по мере появления
@@ -248,9 +255,19 @@ namespace CatTanks
         void HandlePlayerDeath()
         {
             if (State != GameState.Playing) return;
+            Lives = Mathf.Max(0, Lives - 1);
             SetState(GameState.PlayerDead);
             OnPlayerKilled?.Invoke(Current);
-            StartCoroutine(AfterRealtime(restartDelay, RestartLevel));
+            StartCoroutine(AfterRealtime(restartDelay, Lives > 0 ? (Action)RestartLevel : GameOver));
+        }
+
+        /// <summary>Жизни кончились: арена замирает, поверх — экран Game Over (его показывает UI по OnGameOver).</summary>
+        void GameOver()
+        {
+            GameSettings.SubmitRun(LevelNumber, TotalStars);
+            GameTime.Set(this, 0f);
+            SetState(GameState.GameOver);
+            OnGameOver?.Invoke();
         }
 
         void SetupCamera(LevelContext ctx)

@@ -91,7 +91,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 30e0b7c57d566694c928e85ee6d673bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHp: 3
+  maxHp: 9
   team: 0
   invulnerableAfterHit: 0.5
   flashColor: {r: 1, g: 0.3, b: 0.3, a: 1}
@@ -116,6 +116,7 @@ MonoBehaviour:
   maxBounces: 1
   fireCooldown: 0.3
   maxBulletsAlive: 5
+  bulletDamage: 2
   bulletPrefab: {fileID: 0}
   bulletSprite: {fileID: 251537664351223349, guid: 44e4112211a35a746a3339ee342faec1, type: 3}
   bulletColor: {r: 1, g: 0.95, b: 0.6, a: 1}
@@ -128,6 +129,7 @@ MonoBehaviour:
   minigunIdleReload: 0.5
   minigunMaxBullets: 4
   minigunDamage: 1
+  minigunBulletScale: 0.6
   minigunBulletPrefab: {fileID: 0}
   minigunColor: {r: 0.85, g: 0.45, b: 0.2, a: 1}
 --- !u!114 &1000000000000000006
