@@ -21,6 +21,11 @@ namespace CatTanks
         static void ResetStatics() => FriendlyFire = true;
 
         public int Hp { get; private set; }
+
+        /// <summary>Не получает урона ни от чего, даже от ульты (босс ревёт при смене стадии).</summary>
+        [NonSerialized] public bool Invulnerable;
+        /// <summary>Один удар не опускает HP ниже этого значения (босс: стадию нельзя проскочить одним орехом). 0 — без ограничения.</summary>
+        [NonSerialized] public int HitFloor;
         public bool IsDead => Hp <= 0;
         public bool IsPlayer => team == Team.Player;
 
@@ -64,10 +69,11 @@ namespace CatTanks
         /// </summary>
         public void Damage(int amount, Team? attacker, bool byUltimate = false)
         {
-            if (IsDead || (!byUltimate && Time.time < _invulUntil)) return;
+            if (IsDead || Invulnerable || (!byUltimate && Time.time < _invulUntil)) return;
             LastAttacker = attacker;
             LastHitByUltimate = byUltimate;
-            Hp = Mathf.Max(0, Hp - amount); // не уходим в минус: удар ореха на 99 — это «0», а не «−89» для полосок HP
+            int floor = HitFloor > 0 && Hp > HitFloor ? HitFloor : 0;
+            Hp = Mathf.Max(floor, Hp - amount); // не уходим в минус: удар ореха на 99 — это «0», а не «−89» для полосок HP
             _invulUntil = Time.time + invulnerableAfterHit;
             _flashUntil = Time.time + 0.08f;
             SetFlash(true);

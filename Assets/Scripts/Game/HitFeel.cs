@@ -2,7 +2,8 @@
 //   • выстрел игрока — лёгкий толчок камеры;
 //   • попадание по врагу — микро-пауза и толчок;
 //   • убийство врага — пауза длиннее;
-//   • попадание по игроку — самая заметная пауза и тряска, чтобы урон нельзя было не заметить.
+//   • попадание по игроку — самая заметная пауза и тряска, чтобы урон нельзя было не заметить;
+//   • босс перешёл в новую стадию — длинная тряска под рёв.
 // Геймплей про это ничего не знает — только поднимает события. Создаётся GameFlow (или добавь на его объект сам,
 // чтобы крутить числа в инспекторе). Стоп-кадр — через GameTime, поэтому не спорит с паузой и замедлением ульты.
 using UnityEngine;
@@ -32,6 +33,7 @@ namespace CatTanks
         public Kick enemyHit = new Kick(0.045f, 0.08f, 0.1f);
         public Kick enemyKilled = new Kick(0.07f, 0.14f, 0.16f);
         public Kick playerHit = new Kick(0.12f, 0.3f, 0.3f);
+        public Kick bossStage = new Kick(0.1f, 0.35f, 0.9f);
 
         GameFlow _flow;
         float _freezeUntil;
@@ -43,6 +45,7 @@ namespace CatTanks
             _flow = flow;
             Bullet.Fired += OnFired;
             Bullet.HitTarget += OnHitTarget;
+            BossStages.StageChanged += OnBossStage;
             if (_flow != null) _flow.OnEnemyKilled += OnEnemyKilled;
         }
 
@@ -50,6 +53,7 @@ namespace CatTanks
         {
             Bullet.Fired -= OnFired;
             Bullet.HitTarget -= OnHitTarget;
+            BossStages.StageChanged -= OnBossStage;
             if (_flow != null) _flow.OnEnemyKilled -= OnEnemyKilled;
         }
 
@@ -72,6 +76,7 @@ namespace CatTanks
         }
 
         void OnEnemyKilled(GameObject enemy) => Apply(enemyKilled);
+        void OnBossStage(Vector2 at, int stage) => Apply(bossStage);
 
         void Apply(Kick k)
         {

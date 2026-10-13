@@ -59,6 +59,8 @@ namespace CatTanks
         [Tooltip("Табличка с именем босса для его полоски HP (boss_name_crab). Пусто = без таблички")]
         public Sprite bossNameplate;
         public float invulnerableAfterHit = 0.05f;
+        [Tooltip("Стадии босса (BossStages): первая действует с начала боя, следующие включаются, когда HP падает ниже порога. Множители — к параметрам этого ассета. Пусто = без стадий")]
+        public BossStage[] bossStages = new BossStage[0];
 
         [Header("Движение и таран (EnemyCrawler)")]
         public float moveSpeed = 2.2f;
@@ -124,6 +126,9 @@ namespace CatTanks
                 shooter.bulletColor = bulletColor;
                 shooter.bulletSprite = bulletSprite;
             }
+
+            var stages = go.GetComponentInChildren<BossStages>();
+            if (stages != null) stages.stages = bossStages;
         }
     }
 }

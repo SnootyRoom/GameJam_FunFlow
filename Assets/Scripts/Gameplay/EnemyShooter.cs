@@ -19,6 +19,12 @@ namespace CatTanks
         public int aimSamplesPerFrame = 12;
         public float aimErrorDegrees = 2f;    // небольшой разброс, чтобы ИИ не был снайпером
         public float turretTurnSpeed = 270f;
+        [Tooltip("Снарядов в залпе: 1 — одиночный, больше — веер вокруг выбранного направления (стадии босса)")]
+        public int volley = 1;
+        [Tooltip("Угол между снарядами веера, градусы")]
+        public float volleySpread = 14f;
+        [Tooltip("Упреждение прямого выстрела: 0 — бьёт туда, где кот сейчас, 1 — туда, где он будет, если не свернёт")]
+        [Range(0f, 1f)] public float leadTarget = 0f;
         public GameObject bulletPrefab;
         public Sprite bulletSprite;           // пусто = кружок цвета bulletColor
         public Color bulletColor = new Color(1f, 0.35f, 0.9f);
@@ -52,6 +58,8 @@ namespace CatTanks
         bool _searching;                      // идёт поиск рикошета, растянутый по кадрам
         int _searchIndex;
         float _searchOffset;
+        Vector2 _playerLastPos, _playerVel;   // скорость кота для упреждения — по смещению (он ездит через MovePosition)
+        bool _hasPlayerPos;
 
         public void Init(LevelContext ctx)
         {
@@ -75,6 +83,7 @@ namespace CatTanks
         {
             if (_ctx == null || !_ctx.PlayerAlive) { if (_windup) EndWindup(); return; }
             var player = _ctx.Player.transform;
+            TrackPlayerVelocity(player.position);
 
             // между выстрелами следим взглядом за игроком, а после выстрела ненадолго держим направление выстрела
             if (trackPlayer && Time.time >= _holdAimUntil && Vector2.Distance(transform.position, player.position) <= sightRange)
@@ -98,7 +107,8 @@ namespace CatTanks
             Vector2 dir;
             if (!_searching)
             {
-                if (!TryDirectShot(player, out dir))
+                if (TryDirectShot(player, out dir)) dir = Lead(player.position, dir);
+                else
                 {
                     if (maxBounces <= 0) { Retry(); return; }
                     // прямого выстрела нет — начинаем перебор рикошетов со случайного угла, чтобы выстрелы были разными
@@ -123,9 +133,26 @@ namespace CatTanks
             else Fire(dir);
         }
 
+        /// <summary>Заряжает выстрел (мигает, пунктир)? Пока заряжает, другие атаки ждут.</summary>
+        public bool Busy => _windup;
+
+        /// <summary>Сбросить зарядку и поиск выстрела (например, босс перешёл в новую стадию). delay — пауза до следующей попытки.</summary>
+        public void Interrupt(float delay)
+        {
+            if (_windup) EndWindup();
+            _searching = false;
+            _timer = delay;
+        }
+
         void Fire(Vector2 dir)
         {
-            Bullet.Spawn(Muzzle(dir), dir, gameObject, bulletColor, bulletSpeed, maxBounces, bulletPrefab, bulletSprite);
+            // центральный снаряд летит точно по пунктиру, остальные — веером вокруг него
+            int n = Mathf.Max(1, volley);
+            for (int i = 0; i < n; i++)
+            {
+                Vector2 d = Quaternion.Euler(0, 0, (i - (n - 1) * 0.5f) * volleySpread) * dir;
+                Bullet.Spawn(Muzzle(d), d, gameObject, bulletColor, bulletSpeed, maxBounces, bulletPrefab, bulletSprite);
+            }
             _timer = fireInterval * Random.Range(0.8f, 1.2f);
         }
 
@@ -160,12 +187,39 @@ namespace CatTanks
             _telegraph.Hide();
         }
 
-        Vector2 Muzzle(Vector2 dir) => (Vector2)transform.position + dir * (bodyRadius + bulletRadius + 0.05f);
+        public Vector2 Muzzle(Vector2 dir) => (Vector2)transform.position + dir * (bodyRadius + bulletRadius + 0.05f);
 
         void Retry()
         {
             _searching = false;
             _timer = 0.3f; // попробуем ещё раз чуть позже
+        }
+
+        void TrackPlayerVelocity(Vector2 pos)
+        {
+            if (_hasPlayerPos && Time.deltaTime > 0f)
+                _playerVel = Vector2.Lerp(_playerVel, (pos - _playerLastPos) / Time.deltaTime, 1f - Mathf.Exp(-10f * Time.deltaTime));
+            _playerLastPos = pos;
+            _hasPlayerPos = true;
+        }
+
+        /// <summary>
+        /// Прямой выстрел с упреждением: туда, где кот будет к прилёту снаряда (с учётом замаха).
+        /// Если до этой точки мешает стена — бьём прямо в кота.
+        /// </summary>
+        Vector2 Lead(Vector2 target, Vector2 direct)
+        {
+            if (leadTarget <= 0f || _playerVel.sqrMagnitude < 0.04f) return direct;
+            Vector2 from = transform.position;
+            float t = telegraphTime + Vector2.Distance(from, target) / Mathf.Max(0.1f, bulletSpeed);
+            Vector2 aim = target + _playerVel * (t * leadTarget);
+            Vector2 d = (aim - from).normalized;
+            Vector2 muzzle = Muzzle(d);
+            float dist = Vector2.Distance(muzzle, aim);
+            if (Ricochet.CastNearest(muzzle, bulletRadius, d, dist, transform, out var hit) &&
+                !hit.collider.transform.IsChildOf(_ctx.Player.transform))
+                return direct;
+            return d;
         }
 
         List<Vector2> DebugPoints => drawDebugShot ? _debugPoints : null;

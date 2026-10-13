@@ -38,7 +38,9 @@ namespace CatTanks
         /// <summary>Враг по описанию. Параметры (hp, скорость…) потом проставит EnemyDefinition.ApplyTo.</summary>
         public static GameObject Enemy(EnemyDefinition def, Transform parent, Vector2 pos)
         {
-            return def.sprite != null ? SpriteEnemy(def, parent, pos) : PrimitiveEnemy(def, parent, pos);
+            var go = def.sprite != null ? SpriteEnemy(def, parent, pos) : PrimitiveEnemy(def, parent, pos);
+            if (def.bossStages != null && def.bossStages.Length > 0) go.AddComponent<BossStages>(); // стадии зададутся в ApplyTo
+            return go;
         }
 
         /// <summary>

@@ -11,6 +11,7 @@ namespace CatTanks
         public LevelData Data;              // сетка, A, Б, главный путь, расстояния
         public GridPathfinder Pathfinder;   // A* по сетке
         public LevelBuilder Builder;        // сборщик сцены уровня — например, чтобы разрушить стены
+        public EntitySpawner Spawner;       // спавн во время игры — подкрепления, миньоны босса
         public Transform Root;              // родитель всего на уровне; удаляется при смене уровня
         public int LevelNumber;
         public int Difficulty;
