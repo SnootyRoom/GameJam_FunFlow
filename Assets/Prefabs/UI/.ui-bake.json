@@ -2,7 +2,7 @@
     "entries": [
         {
             "path": "Assets/Prefabs/UI/Hud.prefab",
-            "hash": "9AF099AE7B510B715E6550E309F08C0C"
+            "hash": "55B81B8CB2040EAEF5E8CFB0DA204289"
         },
         {
             "path": "Assets/Prefabs/UI/Banner.prefab",
@@ -10,23 +10,23 @@
         },
         {
             "path": "Assets/Prefabs/UI/Pause.prefab",
-            "hash": "A453A4FDA6DB64D7F6B8AC4230806358"
+            "hash": "066F323ED4F923BED7512B21C0BD1CA3"
         },
         {
             "path": "Assets/Prefabs/UI/GameOver.prefab",
-            "hash": "381301A72A9C452D82C86F3FEC0DBD98"
+            "hash": "D1AEC0B1BA8364CBB1E30534A4F79478"
         },
         {
             "path": "Assets/Prefabs/UI/MainMenu.prefab",
-            "hash": "664A62329FA191BF469E65FE0D97613D"
+            "hash": "A4F1DC46588A3D42486FC23D7A812075"
         },
         {
             "path": "Assets/Prefabs/UI/Tutorial.prefab",
-            "hash": "C559FE381CD82CF8A3A551C33E0B5FBF"
+            "hash": "1EBE6E5E0618247B309B50CDC7537D75"
         },
         {
             "path": "Assets/Prefabs/UI/GameCanvas.prefab",
-            "hash": "911875AAB2794B3352C8107237E4BA94"
+            "hash": "ADD83BFA32DBFB6BB57293D95043FB24"
         }
     ]
 }
