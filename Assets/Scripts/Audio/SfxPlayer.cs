@@ -28,6 +28,8 @@ namespace CatTanks
             TitleView.Dismissed += OnTitleDismissed;
             EnemyShooter.ShotTelegraphed += OnShotTelegraphed;
             EnemyCrawler.AttackTelegraphed += OnCrawlerTelegraphed;
+            BossStages.StageChanged += OnBossStage;
+            BossStages.SpecialTelegraphed += OnBossSpecialTelegraphed;
             PlayerTank.MinigunReloadStarted += OnReloadStarted;
             PlayerTank.MinigunReloaded += OnReloaded;
             BannerView.StarRevealed += OnStarRevealed;
@@ -57,6 +59,8 @@ namespace CatTanks
             TitleView.Dismissed -= OnTitleDismissed;
             EnemyShooter.ShotTelegraphed -= OnShotTelegraphed;
             EnemyCrawler.AttackTelegraphed -= OnCrawlerTelegraphed;
+            BossStages.StageChanged -= OnBossStage;
+            BossStages.SpecialTelegraphed -= OnBossSpecialTelegraphed;
             PlayerTank.MinigunReloadStarted -= OnReloadStarted;
             PlayerTank.MinigunReloaded -= OnReloaded;
             BannerView.StarRevealed -= OnStarRevealed;
@@ -128,6 +132,9 @@ namespace CatTanks
         void OnTitleDismissed() => Sfx.Play(SfxId.MenuEnter, 0.9f, 0f);
         void OnShotTelegraphed(Vector2 at) => Sfx.PlayAt(SfxId.EnemyCharge, at, 0.55f, 0.08f);
         void OnCrawlerTelegraphed(Vector2 at) => Sfx.PlayAt(SfxId.EnemyCharge, at, 0.5f, 0.08f, 1.35f); // выше и короче — «клещ готовится»
+        // босс: рёв на новой стадии (каждая следующая — ниже и злее), низкий гул перед кольцом или спиралью
+        void OnBossStage(Vector2 at, int stage) => Sfx.PlayAt(SfxId.BossRoar, at, 1f, 0f, Mathf.Max(0.7f, 1.05f - 0.1f * stage));
+        void OnBossSpecialTelegraphed(Vector2 at) => Sfx.PlayAt(SfxId.EnemyCharge, at, 0.8f, 0.03f, 0.7f);
         void OnReloadStarted() => Sfx.Play(SfxId.ReloadStart, 0.5f, 0.05f);
         void OnReloaded() => Sfx.Play(SfxId.ReloadEnd, 0.6f, 0.03f);
         void OnGameOver() => Sfx.Play(SfxId.DeathKnell, 0.8f, 0f); // погребальный колокол
